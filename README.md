@@ -30,6 +30,10 @@ pnpm dev
 # 따로 띄우려면 pnpm dev:api / pnpm dev:web
 ```
 
+## 작업 기록
+
+설계 결정, 삽질, 현재 상태는 [docs/WORKLOG.md](docs/WORKLOG.md).
+
 ## 단계별 진행
 
 | Phase | 내용 | 상태 |

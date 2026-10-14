@@ -1,8 +1,10 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { CrawlSummary, JobSource, RawPosting } from '@devilray/shared';
+import { NotificationsService } from '../notifier/notifications.service';
 import { PostingsService } from '../postings/postings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SOURCE_ADAPTERS, type SourceAdapter } from './source-adapter';
+import { matchesTitle } from './title-filter';
 
 @Injectable()
 export class CrawlerService {
@@ -13,6 +15,7 @@ export class CrawlerService {
     @Inject(SOURCE_ADAPTERS) adapters: SourceAdapter[],
     private readonly prisma: PrismaService,
     private readonly postings: PostingsService,
+    private readonly notifications: NotificationsService,
   ) {
     this.adapters = new Map(adapters.map((a) => [a.source, a]));
   }
@@ -21,7 +24,10 @@ export class CrawlerService {
     return [...this.adapters.keys()];
   }
 
-  /** Crawl every keyword of a profile on one source, upsert, and record a CrawlRun. */
+  /**
+   * Crawl every keyword of a profile on one source, filter by title, upsert,
+   * then push anything still unannounced to the notification channels.
+   */
   async run(source: JobSource, profileId: number): Promise<CrawlSummary> {
     const adapter = this.adapters.get(source);
     if (!adapter) throw new NotFoundException(`No adapter for source ${source} yet`);
@@ -40,16 +46,22 @@ export class CrawlerService {
       for (const keyword of profile.keywords) {
         collected.push(...(await adapter.fetch(keyword)));
       }
-      const result = await this.postings.upsertMany(collected);
+      const relevant = collected.filter((p) =>
+        matchesTitle(p.title, profile.includeTitle, profile.excludeTitle),
+      );
+      const result = await this.postings.upsertMany(relevant);
+      const notified = await this.notifications.dispatchPending();
 
       await this.prisma.crawlRun.update({
         where: { id: run.id },
         data: {
           status: 'OK',
           finishedAt: new Date(),
+          fetched: collected.length,
           found: result.found,
           inserted: result.insertedIds.length,
           updated: result.updated,
+          notified,
         },
       });
       const summary: CrawlSummary = {
@@ -57,14 +69,16 @@ export class CrawlerService {
         source,
         profileId,
         keywords: profile.keywords,
+        fetched: collected.length,
         found: result.found,
         inserted: result.insertedIds.length,
         updated: result.updated,
         insertedIds: result.insertedIds,
+        notified,
         durationMs: Date.now() - started,
       };
       this.logger.log(
-        `run#${run.id} done: found=${summary.found} inserted=${summary.inserted} updated=${summary.updated} in ${summary.durationMs}ms`,
+        `run#${run.id} done: fetched=${summary.fetched} found=${summary.found} inserted=${summary.inserted} updated=${summary.updated} notified=${notified} in ${summary.durationMs}ms`,
       );
       return summary;
     } catch (err) {

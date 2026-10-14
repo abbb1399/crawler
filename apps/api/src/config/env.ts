@@ -10,8 +10,21 @@ export const EnvSchema = z.object({
   DATABASE_URL: z.string().url(),
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.coerce.number().int().positive().default(6379),
+
   /** Max result pages per keyword for Wanted (20 items/page). */
   WANTED_MAX_PAGES: z.coerce.number().int().min(1).max(20).default(3),
+
+  /** Cron expression for the periodic crawl of all enabled profiles. */
+  CRAWL_CRON: z.string().min(9).default('*/30 * * * *'),
+  /** Also run one full crawl ~2s after startup. Handy in dev. */
+  CRAWL_ON_BOOT: z.stringbool().default(false),
+
+  /** Slack Incoming Webhook URL. Unset = Slack channel disabled. */
+  SLACK_WEBHOOK_URL: z.string().url().optional(),
+  /** Cap on postings announced per channel per run (10 per Slack message). */
+  NOTIFY_MAX_PER_RUN: z.coerce.number().int().min(1).max(500).default(50),
+  /** Only postings first seen within this window are eligible for a NEW notification. */
+  NOTIFY_LOOKBACK_HOURS: z.coerce.number().int().min(1).default(24),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

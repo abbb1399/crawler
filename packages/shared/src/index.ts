@@ -33,10 +33,14 @@ export const CrawlSummary = z.object({
   source: JobSource,
   profileId: z.number(),
   keywords: z.array(z.string()),
+  /** Items returned by the site before the title filter. */
+  fetched: z.number(),
   found: z.number(),
   inserted: z.number(),
   updated: z.number(),
   insertedIds: z.array(z.number()),
+  /** Postings delivered to notification channels during this run (may include older pending ones). */
+  notified: z.number(),
   durationMs: z.number(),
 });
 export type CrawlSummary = z.infer<typeof CrawlSummary>;

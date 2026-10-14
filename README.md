@@ -34,7 +34,7 @@ pnpm dev
 |---|---|---|
 | 0 | 모노레포 + docker-compose + health | ✅ |
 | 1 | Prisma + 원티드 수집기 (수동 트리거) | ✅ |
-| 2 | Slack 알림 + 크론 | |
+| 2 | Slack 알림 + 크론 + 제목 필터 | ✅ |
 | 3 | BullMQ 큐 | |
 | 4 | 잡코리아 (Playwright) | |
 | 5 | Next.js 프론트 | |
@@ -52,3 +52,17 @@ curl -X POST "localhost:3000/crawl/wanted?profileId=1"
 curl "localhost:3000/postings?limit=20&source=wanted"
 curl "localhost:3000/runs"
 ```
+
+## 알림 / 스케줄 설정
+
+`.env`에 아래를 넣으면 켜집니다. 없으면 크롤만 하고 알림은 건너뜁니다.
+
+```
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/XXX/YYY/ZZZ   # Slack 앱 > Incoming Webhooks
+CRAWL_CRON=*/30 * * * *        # 기본 30분
+CRAWL_ON_BOOT=true             # 기동 직후 1회 실행 (개발용)
+```
+
+- 알림 대상: 최근 `NOTIFY_LOOKBACK_HOURS`(기본 24h) 안에 처음 본 공고 중 아직 성공 로그가 없는 것. `NotificationLog(postingId, channel, kind)` unique라 같은 공고가 두 번 가지 않고, 웹훅 실패는 다음 실행에서 재시도됩니다.
+- Slack 메시지는 10건씩 묶어 1개 메시지로 보냅니다.
+- 제목 필터: 사이트 검색이 느슨해서 `SearchProfile.includeTitle`(하나라도 포함) / `excludeTitle`(포함 시 제외)로 걸러서 저장합니다. 둘 다 비우면 전부 저장. 기본 시드는 include = node, nest, backend, 백엔드, 서버.

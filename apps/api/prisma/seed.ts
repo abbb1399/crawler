@@ -14,11 +14,20 @@ async function main() {
     create: {
       name: 'default',
       keywords: ['nestjs', 'node.js 백엔드'],
+      // Site search is fuzzy; require one of these in the title to keep notifications relevant.
+      includeTitle: ['node', 'nest', 'backend', '백엔드', '서버'],
+      excludeTitle: [],
       sources: ['WANTED', 'JOBKOREA'],
     },
-    update: {},
+    // Re-running the seed re-applies the defaults to the "default" profile only.
+    update: {
+      keywords: ["nestjs", "node.js 백엔드"],
+      includeTitle: ["node", "nest", "backend", "백엔드", "서버"],
+    },
   });
-  console.log(`seeded SearchProfile #${profile.id} "${profile.name}" keywords=${profile.keywords.join(', ')}`);
+  console.log(
+    `seeded SearchProfile #${profile.id} "${profile.name}" keywords=${profile.keywords.join(', ')} include=${profile.includeTitle.join(', ')}`,
+  );
 }
 
 main()

@@ -3,8 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { validateEnv } from './config/env';
 import { CrawlerModule } from './crawler/crawler.module';
 import { HealthController } from './health/health.controller';
+import { NotifierModule } from './notifier/notifier.module';
 import { PostingsModule } from './postings/postings.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -16,7 +18,9 @@ import { PrismaModule } from './prisma/prisma.module';
     }),
     PrismaModule,
     PostingsModule,
+    NotifierModule,
     CrawlerModule,
+    SchedulerModule,
   ],
   controllers: [HealthController],
 })

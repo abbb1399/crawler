@@ -38,6 +38,10 @@ model SearchProfile {
   id        Int         @id @default(autoincrement())
   name      String      @unique
   keywords  String[]
+  /// Title must contain one of these (case-insensitive). Empty = no constraint.
+  includeTitle String[] @default([])
+  /// Title containing any of these is dropped.
+  excludeTitle String[] @default([])
   sources   JobSource[]
   enabled   Boolean     @default(true)
   createdAt DateTime    @default(now())
@@ -81,9 +85,12 @@ model CrawlRun {
   startedAt  DateTime       @default(now())
   finishedAt DateTime?
   status     CrawlRunStatus @default(RUNNING)
+  /// Raw count from the site before the title filter.
+  fetched    Int            @default(0)
   found      Int            @default(0)
   inserted   Int            @default(0)
   updated    Int            @default(0)
+  notified   Int            @default(0)
   error      String?
 
   @@index([source, startedAt])

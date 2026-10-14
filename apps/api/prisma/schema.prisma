@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum JobSource {
+  WANTED
+  JOBKOREA
+}
+
+enum PostingStatus {
+  ACTIVE
+  EXPIRED
+}
+
+enum CrawlRunStatus {
+  RUNNING
+  OK
+  FAILED
+}
+
+enum NotifyChannel {
+  SLACK
+  TELEGRAM
+}
+
+enum NotifyKind {
+  NEW
+  REPOST
+}
+
+/// A named set of keywords to crawl across one or more sources.
+model SearchProfile {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique
+  keywords  String[]
+  sources   JobSource[]
+  enabled   Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  runs CrawlRun[]
+}
+
+/// One job posting as seen on a source. (source, externalId) is the dedup key.
+model JobPosting {
+  id          Int           @id @default(autoincrement())
+  source      JobSource
+  externalId  String
+  title       String
+  company     String
+  location    String?
+  url         String
+  dueDate     DateTime?     @db.Date
+  /// sha1(title|company|dueDate) — changes mean the posting was edited, not re-posted.
+  contentHash String
+  status      PostingStatus @default(ACTIVE)
+  raw         Json
+  firstSeenAt DateTime      @default(now())
+  lastSeenAt  DateTime
+  seen        Boolean       @default(false)
+  starred     Boolean       @default(false)
+
+  notifications NotificationLog[]
+
+  @@unique([source, externalId])
+  @@index([status, lastSeenAt])
+  @@index([firstSeenAt])
+}
+
+/// One execution of a crawl for (source, profile).
+model CrawlRun {
+  id         Int            @id @default(autoincrement())
+  source     JobSource
+  profileId  Int
+  profile    SearchProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  startedAt  DateTime       @default(now())
+  finishedAt DateTime?
+  status     CrawlRunStatus @default(RUNNING)
+  found      Int            @default(0)
+  inserted   Int            @default(0)
+  updated    Int            @default(0)
+  error      String?
+
+  @@index([source, startedAt])
+}
+
+/// Used from Phase 2. Unique key guarantees a posting is never notified twice on one channel.
+model NotificationLog {
+  id        Int           @id @default(autoincrement())
+  postingId Int
+  posting   JobPosting    @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  channel   NotifyChannel
+  kind      NotifyKind    @default(NEW)
+  sentAt    DateTime      @default(now())
+  ok        Boolean
+  error     String?
+
+  @@unique([postingId, channel, kind])
+}

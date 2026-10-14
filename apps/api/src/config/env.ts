@@ -7,9 +7,11 @@ import { z } from 'zod';
 export const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
-  DATABASE_URL: z.string().url().optional(),
+  DATABASE_URL: z.string().url(),
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.coerce.number().int().positive().default(6379),
+  /** Max result pages per keyword for Wanted (20 items/page). */
+  WANTED_MAX_PAGES: z.coerce.number().int().min(1).max(20).default(3),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

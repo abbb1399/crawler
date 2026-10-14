@@ -33,9 +33,22 @@ pnpm dev
 | Phase | 내용 | 상태 |
 |---|---|---|
 | 0 | 모노레포 + docker-compose + health | ✅ |
-| 1 | Prisma + 원티드 수집기 (수동 트리거) | |
+| 1 | Prisma + 원티드 수집기 (수동 트리거) | ✅ |
 | 2 | Slack 알림 + 크론 | |
 | 3 | BullMQ 큐 | |
 | 4 | 잡코리아 (Playwright) | |
 | 5 | Next.js 프론트 | |
 | 6 | 텔레그램 + 중복 강화 + 운영 | |
+
+## DB / 크롤 명령
+
+```bash
+pnpm --filter api db:migrate     # 스키마 변경 후 마이그레이션 생성+적용
+pnpm --filter api db:seed        # 기본 SearchProfile 시드
+pnpm --filter api db:studio      # Prisma Studio
+
+# 수동 크롤 트리거 (profileId 기본 1)
+curl -X POST "localhost:3000/crawl/wanted?profileId=1"
+curl "localhost:3000/postings?limit=20&source=wanted"
+curl "localhost:3000/runs"
+```

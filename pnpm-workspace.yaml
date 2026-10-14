@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 10+ blocks postinstall scripts unless listed here.
+# prisma / playwright are added ahead of time for later phases.
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@prisma/engines'
+  - '@prisma/client'
+  - prisma
+  - playwright
+  - esbuild

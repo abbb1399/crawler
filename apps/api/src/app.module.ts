@@ -6,10 +6,12 @@ import { HealthController } from './health/health.controller';
 import { NotifierModule } from './notifier/notifier.module';
 import { PostingsModule } from './postings/postings.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { SchedulerModule } from './scheduler/scheduler.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
+    // Must come first: forRoot() loads .env into process.env synchronously, and
+    // QueueModule.register() below reads ROLE from process.env.
     ConfigModule.forRoot({
       isGlobal: true,
       // Resolved relative to process.cwd(); `pnpm dev` runs from apps/api.
@@ -20,7 +22,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     PostingsModule,
     NotifierModule,
     CrawlerModule,
-    SchedulerModule,
+    QueueModule.register(),
   ],
   controllers: [HealthController],
 })

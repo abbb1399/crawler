@@ -10,3 +10,4 @@ allowBuilds:
   esbuild: true
   playwright: true
   workerd: false
+  msgpackr-extract: false

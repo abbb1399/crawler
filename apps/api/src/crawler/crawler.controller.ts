@@ -1,28 +1,10 @@
-import { BadRequestException, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { JobSource } from '@devilray/shared';
+import { Controller, Get, Query } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CrawlerService } from './crawler.service';
 
+/** Read-only lookups. Crawl triggers live in queue/crawl.controller.ts. */
 @Controller()
 export class CrawlerController {
-  constructor(
-    private readonly crawler: CrawlerService,
-    private readonly prisma: PrismaService,
-  ) {}
-
-  /** Manual trigger: POST /crawl/wanted?profileId=1 */
-  @Post('crawl/:source')
-  trigger(@Param('source') sourceParam: string, @Query('profileId') profileIdParam?: string) {
-    const source = JobSource.safeParse(sourceParam.toUpperCase());
-    if (!source.success) {
-      throw new BadRequestException(`source must be one of ${JobSource.options.join(', ')}`);
-    }
-    const profileId = Number(profileIdParam ?? 1);
-    if (!Number.isInteger(profileId) || profileId <= 0) {
-      throw new BadRequestException('profileId must be a positive integer');
-    }
-    return this.crawler.run(source.data, profileId);
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   @Get('profiles')
   profiles() {

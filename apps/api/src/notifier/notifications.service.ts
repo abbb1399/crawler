@@ -7,6 +7,12 @@ import { NOTIFIERS, type NotifiablePosting, type Notifier } from './notifier';
 
 const BATCH_SIZE = 10;
 
+export interface DispatchResult {
+  delivered: number;
+  /** Postings whose batch failed on some channel; they stay pending for the next attempt. */
+  failed: number;
+}
+
 /**
  * Finds postings that have not been announced on each enabled channel and sends them.
  * Idempotent: NotificationLog(postingId, channel, kind) is unique, and only rows with
@@ -31,17 +37,18 @@ export class NotificationsService {
     return this.notifiers.filter((n) => n.enabled).map((n) => n.channel);
   }
 
-  /** Returns the number of postings delivered across all channels. */
-  async dispatchPending(): Promise<number> {
-    let delivered = 0;
+  async dispatchPending(): Promise<DispatchResult> {
+    const total: DispatchResult = { delivered: 0, failed: 0 };
     for (const notifier of this.notifiers) {
       if (!notifier.enabled) continue;
-      delivered += await this.dispatchForChannel(notifier);
+      const r = await this.dispatchForChannel(notifier);
+      total.delivered += r.delivered;
+      total.failed += r.failed;
     }
-    return delivered;
+    return total;
   }
 
-  private async dispatchForChannel(notifier: Notifier): Promise<number> {
+  private async dispatchForChannel(notifier: Notifier): Promise<DispatchResult> {
     const since = new Date(Date.now() - this.lookbackHours * 3_600_000);
     const pending = await this.prisma.jobPosting.findMany({
       where: {
@@ -61,9 +68,10 @@ export class NotificationsService {
         dueDate: true,
       },
     });
-    if (pending.length === 0) return 0;
+    if (pending.length === 0) return { delivered: 0, failed: 0 };
 
     let delivered = 0;
+    let failed = 0;
     for (const batch of chunk(pending, BATCH_SIZE)) {
       try {
         await notifier.send(batch);
@@ -73,11 +81,12 @@ export class NotificationsService {
         const message = err instanceof Error ? err.message : String(err);
         this.logger.error(`${notifier.channel}: ${message}`);
         await this.markSent(batch, notifier.channel, false, message);
-        break; // Channel is unhealthy; leave the rest for the next run.
+        failed += pending.length - delivered; // this batch plus everything after it
+        break; // Channel is unhealthy; leave the rest for the next attempt.
       }
     }
     this.logger.log(`${notifier.channel}: delivered ${delivered}/${pending.length} pending`);
-    return delivered;
+    return { delivered, failed };
   }
 
   private async markSent(

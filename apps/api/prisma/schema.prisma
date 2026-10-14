@@ -90,7 +90,6 @@ model CrawlRun {
   found      Int            @default(0)
   inserted   Int            @default(0)
   updated    Int            @default(0)
-  notified   Int            @default(0)
   error      String?
 
   @@index([source, startedAt])

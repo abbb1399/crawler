@@ -3,25 +3,24 @@ import { ConfigService } from '@nestjs/config';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import type { Env } from '../config/env';
-import { CrawlerService } from '../crawler/crawler.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { QueueService } from '../queue/queue.service';
 
-const JOB_NAME = 'crawl-all';
+const JOB_NAME = 'enqueue-crawls';
 
 /**
- * Phase 2: runs every enabled profile × source sequentially on a cron.
- * Phase 3 replaces the body of `tick()` with BullMQ enqueues.
+ * On every cron tick, enqueue one crawl job per (enabled profile × queued source).
+ * The job id embeds the minute, so a tick that fires twice cannot double-enqueue.
  */
 @Injectable()
 export class SchedulerService implements OnModuleInit {
   private readonly logger = new Logger(SchedulerService.name);
   private readonly cronExpr: string;
   private readonly runOnBoot: boolean;
-  private running = false;
 
   constructor(
     private readonly registry: SchedulerRegistry,
-    private readonly crawler: CrawlerService,
+    private readonly queues: QueueService,
     private readonly prisma: PrismaService,
     config: ConfigService<Env, true>,
   ) {
@@ -40,32 +39,23 @@ export class SchedulerService implements OnModuleInit {
     }
   }
 
-  /** Run every enabled profile against every source that has an adapter. */
-  async tick(trigger: string): Promise<void> {
-    if (this.running) {
-      this.logger.warn(`tick(${trigger}) skipped: previous run still in progress`);
-      return;
-    }
-    this.running = true;
-    const started = Date.now();
-    try {
-      const profiles = await this.prisma.searchProfile.findMany({ where: { enabled: true } });
-      const available = new Set(this.crawler.availableSources());
-      let runs = 0;
-      for (const profile of profiles) {
-        for (const source of profile.sources) {
-          if (!available.has(source)) continue;
-          try {
-            await this.crawler.run(source, profile.id);
-            runs++;
-          } catch (err) {
-            // Already logged + recorded as FAILED CrawlRun by CrawlerService.
-          }
+  async tick(trigger: 'cron' | 'boot'): Promise<number> {
+    const profiles = await this.prisma.searchProfile.findMany({ where: { enabled: true } });
+    const queued = new Set(this.queues.queuedSources());
+    let n = 0;
+    for (const profile of profiles) {
+      for (const source of profile.sources) {
+        if (!queued.has(source)) continue;
+        try {
+          const { jobId } = await this.queues.enqueueCrawl(source, profile.id, trigger);
+          this.logger.debug(`enqueued ${jobId}`);
+          n++;
+        } catch (err) {
+          this.logger.error(`enqueue ${source}/${profile.id} failed: ${(err as Error).message}`);
         }
       }
-      this.logger.log(`tick(${trigger}) done: ${runs} run(s) in ${Date.now() - started}ms`);
-    } finally {
-      this.running = false;
     }
+    this.logger.log(`tick(${trigger}): enqueued ${n} crawl job(s)`);
+    return n;
   }
 }

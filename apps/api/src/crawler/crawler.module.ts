@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { NotifierModule } from '../notifier/notifier.module';
 import { PostingsModule } from '../postings/postings.module';
 import { CrawlerController } from './crawler.controller';
 import { CrawlerService } from './crawler.service';
@@ -7,7 +6,7 @@ import { SOURCE_ADAPTERS } from './source-adapter';
 import { WantedAdapter } from './wanted.adapter';
 
 @Module({
-  imports: [PostingsModule, NotifierModule],
+  imports: [PostingsModule],
   controllers: [CrawlerController],
   providers: [
     WantedAdapter,

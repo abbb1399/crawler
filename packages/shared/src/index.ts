@@ -39,8 +39,13 @@ export const CrawlSummary = z.object({
   inserted: z.number(),
   updated: z.number(),
   insertedIds: z.array(z.number()),
-  /** Postings delivered to notification channels during this run (may include older pending ones). */
-  notified: z.number(),
   durationMs: z.number(),
 });
 export type CrawlSummary = z.infer<typeof CrawlSummary>;
+
+/** Returned when a crawl is put on the queue (POST /crawl/:source). */
+export const EnqueueResult = z.object({
+  queue: z.string(),
+  jobId: z.string(),
+});
+export type EnqueueResult = z.infer<typeof EnqueueResult>;

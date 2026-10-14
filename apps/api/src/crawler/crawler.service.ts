@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { CrawlSummary, JobSource, RawPosting } from '@devilray/shared';
-import { NotificationsService } from '../notifier/notifications.service';
 import { PostingsService } from '../postings/postings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SOURCE_ADAPTERS, type SourceAdapter } from './source-adapter';
@@ -15,7 +14,6 @@ export class CrawlerService {
     @Inject(SOURCE_ADAPTERS) adapters: SourceAdapter[],
     private readonly prisma: PrismaService,
     private readonly postings: PostingsService,
-    private readonly notifications: NotificationsService,
   ) {
     this.adapters = new Map(adapters.map((a) => [a.source, a]));
   }
@@ -25,8 +23,8 @@ export class CrawlerService {
   }
 
   /**
-   * Crawl every keyword of a profile on one source, filter by title, upsert,
-   * then push anything still unannounced to the notification channels.
+   * Crawl every keyword of a profile on one source, filter by title, upsert, record a CrawlRun.
+   * Notification is the caller's job (the notify queue in normal operation).
    */
   async run(source: JobSource, profileId: number): Promise<CrawlSummary> {
     const adapter = this.adapters.get(source);
@@ -50,7 +48,6 @@ export class CrawlerService {
         matchesTitle(p.title, profile.includeTitle, profile.excludeTitle),
       );
       const result = await this.postings.upsertMany(relevant);
-      const notified = await this.notifications.dispatchPending();
 
       await this.prisma.crawlRun.update({
         where: { id: run.id },
@@ -61,7 +58,6 @@ export class CrawlerService {
           found: result.found,
           inserted: result.insertedIds.length,
           updated: result.updated,
-          notified,
         },
       });
       const summary: CrawlSummary = {
@@ -74,11 +70,10 @@ export class CrawlerService {
         inserted: result.insertedIds.length,
         updated: result.updated,
         insertedIds: result.insertedIds,
-        notified,
         durationMs: Date.now() - started,
       };
       this.logger.log(
-        `run#${run.id} done: fetched=${summary.fetched} found=${summary.found} inserted=${summary.inserted} updated=${summary.updated} notified=${notified} in ${summary.durationMs}ms`,
+        `run#${run.id} done: fetched=${summary.fetched} found=${summary.found} inserted=${summary.inserted} updated=${summary.updated} in ${summary.durationMs}ms`,
       );
       return summary;
     } catch (err) {

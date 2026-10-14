@@ -7,16 +7,21 @@ import { z } from 'zod';
 export const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
+  /** all = api + workers + cron (default). See config/role.ts. */
+  ROLE: z.enum(['all', 'api', 'worker']).default('all'),
+
   DATABASE_URL: z.string().url(),
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.coerce.number().int().positive().default(6379),
+  /** Drop waiting/delayed jobs at startup. Useful after a messy dev restart. */
+  QUEUE_DRAIN_ON_BOOT: z.stringbool().default(false),
 
   /** Max result pages per keyword for Wanted (20 items/page). */
   WANTED_MAX_PAGES: z.coerce.number().int().min(1).max(20).default(3),
 
-  /** Cron expression for the periodic crawl of all enabled profiles. */
+  /** Cron expression for enqueueing crawls of all enabled profiles. */
   CRAWL_CRON: z.string().min(9).default('*/30 * * * *'),
-  /** Also run one full crawl ~2s after startup. Handy in dev. */
+  /** Also enqueue one full crawl ~2s after startup. Handy in dev. */
   CRAWL_ON_BOOT: z.stringbool().default(false),
 
   /** Slack Incoming Webhook URL. Unset = Slack channel disabled. */

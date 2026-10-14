@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { CrawlSummary } from '@devilray/shared';
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import { CrawlerService } from '../crawler/crawler.service';
 import { crawlQueueName, type CrawlJobData } from './queue.constants';
 import { QueueService } from './queue.service';
@@ -33,7 +33,14 @@ export abstract class BaseCrawlProcessor extends WorkerHost {
     );
     await job.updateProgress(5);
 
-    const summary = await this.crawler.run(source, profileId);
+    let summary: CrawlSummary;
+    try {
+      summary = await this.crawler.run(source, profileId);
+    } catch (err) {
+      // A profile deleted while its job was queued will never succeed; skip the retries.
+      if (err instanceof NotFoundException) throw new UnrecoverableError(err.message);
+      throw err;
+    }
     await job.updateProgress(90);
 
     if (summary.inserted > 0) {

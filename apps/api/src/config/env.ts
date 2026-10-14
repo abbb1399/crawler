@@ -7,6 +7,8 @@ import { z } from 'zod';
 export const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
+  /** CORS origin for apps/web. */
+  WEB_ORIGIN: z.string().url().default('http://localhost:3001'),
   /** all = api + workers + cron (default). See config/role.ts. */
   ROLE: z.enum(['all', 'api', 'worker']).default('all'),
 

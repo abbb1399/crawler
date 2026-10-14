@@ -1,16 +1,28 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { JobSource } from '@devilray/shared';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { PostingListQuery, PostingPatch } from '@devilray/shared';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { PostingsService } from './postings.service';
 
 @Controller('postings')
 export class PostingsController {
   constructor(private readonly postings: PostingsService) {}
 
-  /** Quick look at what was collected. The real list API comes with the web UI (Phase 5). */
+  /** GET /postings?source=&status=&q=&unseen=true&starred=true&cursor=&limit= */
   @Get()
-  recent(@Query('limit') limit?: string, @Query('source') source?: string) {
-    const n = Math.min(Math.max(Number(limit) || 20, 1), 100);
-    const parsed = source ? JobSource.safeParse(source.toUpperCase()) : undefined;
-    return this.postings.findRecent(n, parsed?.success ? parsed.data : undefined);
+  list(@Query(new ZodValidationPipe(PostingListQuery)) query: PostingListQuery) {
+    return this.postings.list(query);
+  }
+
+  @Patch(':id')
+  patch(
+    @Param('id', ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(PostingPatch)) body: PostingPatch,
+  ) {
+    return this.postings.patch(id, body);
+  }
+
+  @Post('mark-all-seen')
+  async markAllSeen() {
+    return { updated: await this.postings.markAllSeen() };
   }
 }

@@ -6,7 +6,7 @@
 
 ```
 apps/api          NestJS API + 크롤러 + 스케줄러
-apps/web          Next.js 대시보드 (Phase 5)
+apps/web          Next.js 대시보드 (공고 목록 / 프로필 관리 / 실행 이력)
 packages/shared   zod 스키마 / 타입 공유
 docker-compose    Postgres 16 + Redis 7
 ```
@@ -23,9 +23,11 @@ pnpm infra:up
 # 3. 환경변수
 cp .env.example .env
 
-# 4. API 실행
+# 4. 실행 (API :3000 + 웹 :3001)
 pnpm dev
+# -> http://localhost:3001  대시보드
 # -> http://localhost:3000/health
+# 따로 띄우려면 pnpm dev:api / pnpm dev:web
 ```
 
 ## 단계별 진행
@@ -37,7 +39,7 @@ pnpm dev
 | 2 | Slack 알림 + 크론 + 제목 필터 | ✅ |
 | 3 | BullMQ 큐 + Bull Board | ✅ |
 | 4 | 사람인 (Playwright) | ✅ |
-| 5 | Next.js 프론트 | |
+| 5 | Next.js 프론트 | ✅ |
 | 6 | 텔레그램 + 중복 강화 + 운영 | |
 
 ## DB / 크롤 명령
@@ -91,3 +93,12 @@ CRAWL_ON_BOOT=true             # 기동 직후 1회 실행 (개발용)
 - 차단/레이아웃 변경으로 결과가 안 잡히면 `storage/debug/`에 스크린샷을 남기고 실패합니다. `PW_HEADLESS=false`로 창을 띄워 보면서 디버깅.
 - 크로미엄 설치: `pnpm --filter api exec playwright install chromium` (최초 1회).
 - 고아 프로세스 정리가 필요하면: `taskkill /F /IM chrome-headless-shell.exe`
+
+## 대시보드 (apps/web)
+
+- Next.js 16 App Router + Tailwind v4. 페이지는 서버 컴포넌트가 API를 직접 읽고, 버튼/폼은 서버 액션으로 API를 호출합니다. 브라우저는 API에 직접 붙지 않습니다.
+- `/` 공고 목록: 소스·검색어·안 읽음·별표 필터, 커서 페이지네이션, 읽음/별표 토글, 모두 읽음.
+- `/profiles` 검색 프로필 CRUD, 활성 토글, "지금 수집"(모든 소스 enqueue).
+- `/runs` 최근 50회 실행 이력.
+- API 주소는 `API_URL`(기본 `http://localhost:3000`). Bull Board 링크는 `NEXT_PUBLIC_BULL_BOARD_URL`.
+- 인증 없음. 로컬 전용.

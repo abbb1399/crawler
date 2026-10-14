@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
-import type { JobSource, RawPosting } from '@devilray/shared';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import type { PostingList, PostingListQuery, PostingPatch, RawPosting } from '@devilray/shared';
+import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface UpsertResult {
@@ -9,13 +10,29 @@ export interface UpsertResult {
   updated: number;
 }
 
+const LIST_SELECT = {
+  id: true,
+  source: true,
+  externalId: true,
+  title: true,
+  company: true,
+  location: true,
+  url: true,
+  dueDate: true,
+  status: true,
+  seen: true,
+  starred: true,
+  firstSeenAt: true,
+  lastSeenAt: true,
+} satisfies Prisma.JobPostingSelect;
+
 @Injectable()
 export class PostingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Insert new postings, refresh existing ones. Dedup key is (source, externalId).
-   * Returns ids of rows that were newly inserted; those are what Phase 2 notifies on.
+   * Returns ids of rows that were newly inserted; those are what the notify queue announces.
    */
   async upsertMany(postings: RawPosting[]): Promise<UpsertResult> {
     const unique = dedupeByKey(postings);
@@ -67,26 +84,57 @@ export class PostingsService {
     });
   }
 
-  findRecent(limit = 20, source?: JobSource) {
-    return this.prisma.jobPosting.findMany({
-      where: source ? { source } : undefined,
-      orderBy: { firstSeenAt: 'desc' },
-      take: limit,
-      select: {
-        id: true,
-        source: true,
-        externalId: true,
-        title: true,
-        company: true,
-        location: true,
-        url: true,
-        dueDate: true,
-        status: true,
-        firstSeenAt: true,
-        lastSeenAt: true,
-      },
+  /** Cursor-paginated list, newest first (id desc). */
+  async list(q: PostingListQuery): Promise<PostingList> {
+    const where: Prisma.JobPostingWhereInput = {
+      source: q.source,
+      status: q.status,
+      seen: q.unseen ? false : undefined,
+      starred: q.starred ? true : undefined,
+      id: q.cursor ? { lt: q.cursor } : undefined,
+      OR: q.q
+        ? [
+            { title: { contains: q.q, mode: 'insensitive' } },
+            { company: { contains: q.q, mode: 'insensitive' } },
+          ]
+        : undefined,
+    };
+    const rows = await this.prisma.jobPosting.findMany({
+      where,
+      orderBy: { id: 'desc' },
+      take: q.limit + 1,
+      select: LIST_SELECT,
     });
+    const hasMore = rows.length > q.limit;
+    const page = hasMore ? rows.slice(0, q.limit) : rows;
+    return {
+      items: page.map(serialize),
+      nextCursor: hasMore ? page[page.length - 1]!.id : null,
+    };
   }
+
+  async patch(id: number, patch: PostingPatch) {
+    const exists = await this.prisma.jobPosting.findUnique({ where: { id }, select: { id: true } });
+    if (!exists) throw new NotFoundException(`posting ${id} not found`);
+    const row = await this.prisma.jobPosting.update({ where: { id }, data: patch, select: LIST_SELECT });
+    return serialize(row);
+  }
+
+  async markAllSeen(): Promise<number> {
+    const r = await this.prisma.jobPosting.updateMany({ where: { seen: false }, data: { seen: true } });
+    return r.count;
+  }
+}
+
+type ListRow = Prisma.JobPostingGetPayload<{ select: typeof LIST_SELECT }>;
+
+function serialize(r: ListRow) {
+  return {
+    ...r,
+    dueDate: r.dueDate ? r.dueDate.toISOString().slice(0, 10) : null,
+    firstSeenAt: r.firstSeenAt.toISOString(),
+    lastSeenAt: r.lastSeenAt.toISOString(),
+  };
 }
 
 function key(source: string, externalId: string) {

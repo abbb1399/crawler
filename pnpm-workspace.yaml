@@ -11,3 +11,4 @@ allowBuilds:
   playwright: true
   workerd: false
   msgpackr-extract: false
+  unrs-resolver: false

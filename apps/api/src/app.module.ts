@@ -6,6 +6,7 @@ import { HealthController } from './health/health.controller';
 import { NotifierModule } from './notifier/notifier.module';
 import { PostingsModule } from './postings/postings.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProfilesModule } from './profiles/profiles.module';
 import { QueueModule } from './queue/queue.module';
 
 @Module({
@@ -20,6 +21,7 @@ import { QueueModule } from './queue/queue.module';
     }),
     PrismaModule,
     PostingsModule,
+    ProfilesModule,
     NotifierModule,
     CrawlerModule,
     QueueModule.register(),

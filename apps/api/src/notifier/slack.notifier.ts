@@ -1,12 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SOURCE_LABEL } from '@devilray/shared';
 import type { Env } from '../config/env';
 import type { NotifiablePosting, Notifier } from './notifier';
-
-const SOURCE_LABEL: Record<string, string> = {
-  WANTED: '원티드',
-  SARAMIN: '사람인',
-};
 
 /**
  * Slack Incoming Webhook. One message per batch, rendered with Block Kit:
@@ -46,7 +42,7 @@ export class SlackNotifier implements Notifier {
 }
 
 export function buildMessage(postings: NotifiablePosting[]) {
-  const sources = [...new Set(postings.map((p) => SOURCE_LABEL[p.source] ?? p.source))].join(', ');
+  const sources = [...new Set(postings.map((p) => SOURCE_LABEL[p.source as keyof typeof SOURCE_LABEL] ?? p.source))].join(', ');
   const headline = `새 공고 ${postings.length}건 · ${sources}`;
 
   const blocks: unknown[] = [

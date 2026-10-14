@@ -11,6 +11,8 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const config = app.get(ConfigService<Env, true>);
+  app.enableCors({ origin: config.get('WEB_ORIGIN', { infer: true }), methods: ['GET', 'POST', 'PATCH', 'DELETE'] });
+
   const port = config.get('PORT', { infer: true });
 
   await app.listen(port);

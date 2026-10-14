@@ -12,3 +12,7 @@ Thumbs.db
 # prisma generated client
 apps/api/src/generated/
 *.tsbuildinfo
+
+# next
+.next/
+next-env.d.ts

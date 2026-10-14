@@ -11,3 +11,4 @@ Thumbs.db
 
 # prisma generated client
 apps/api/src/generated/
+*.tsbuildinfo

@@ -26,13 +26,20 @@ export class SlackNotifier implements Notifier {
   }
 
   async send(postings: NotifiablePosting[]): Promise<void> {
-    if (!this.webhookUrl) throw new Error('Slack notifier is disabled');
     if (postings.length === 0) return;
+    await this.post(buildMessage(postings));
+  }
 
+  async sendText(text: string): Promise<void> {
+    await this.post({ text });
+  }
+
+  private async post(payload: unknown): Promise<void> {
+    if (!this.webhookUrl) throw new Error('Slack notifier is disabled');
     const res = await globalThis.fetch(this.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildMessage(postings)),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');

@@ -1,8 +1,9 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { CrawlSummary } from '@devilray/shared';
+import { SOURCE_LABEL, type CrawlSummary } from '@devilray/shared';
 import { Job, UnrecoverableError } from 'bullmq';
 import { CrawlerService } from '../crawler/crawler.service';
+import { NotificationsService } from '../notifier/notifications.service';
 import { crawlQueueName, type CrawlJobData } from './queue.constants';
 import { QueueService } from './queue.service';
 
@@ -22,15 +23,16 @@ export abstract class BaseCrawlProcessor extends WorkerHost {
   constructor(
     protected readonly crawler: CrawlerService,
     protected readonly queues: QueueService,
+    protected readonly notifications: NotificationsService,
   ) {
     super();
   }
 
   async process(job: Job<CrawlJobData, CrawlSummary>): Promise<CrawlSummary> {
     const { source, profileId, trigger } = job.data;
-    this.logger.log(
-      `job ${job.id} (${trigger}) attempt ${job.attemptsMade + 1}: ${source} profile=${profileId}`,
-    );
+    const attempt = job.attemptsMade + 1;
+    const maxAttempts = job.opts.attempts ?? 1;
+    this.logger.log(`job ${job.id} (${trigger}) attempt ${attempt}/${maxAttempts}: ${source} profile=${profileId}`);
     await job.updateProgress(5);
 
     let summary: CrawlSummary;
@@ -39,6 +41,14 @@ export abstract class BaseCrawlProcessor extends WorkerHost {
     } catch (err) {
       // A profile deleted while its job was queued will never succeed; skip the retries.
       if (err instanceof NotFoundException) throw new UnrecoverableError(err.message);
+      if (attempt >= maxAttempts) {
+        // Final failure: this is the only signal that a site changed its layout or blocked us.
+        const message = err instanceof Error ? err.message : String(err);
+        await this.notifications.alert(
+          `crawl-failed:${source}`,
+          `${SOURCE_LABEL[source]} 수집이 ${maxAttempts}회 연속 실패했습니다 (profile #${profileId}).\n${message}`,
+        );
+      }
       throw err;
     }
     await job.updateProgress(90);

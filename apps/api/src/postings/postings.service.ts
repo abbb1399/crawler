@@ -1,6 +1,14 @@
 import { createHash } from 'node:crypto';
-import { Injectable, NotFoundException } from '@nestjs/common';
-import type { PostingList, PostingListQuery, PostingPatch, RawPosting } from '@devilray/shared';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type {
+  ExpireResult,
+  PostingList,
+  PostingListQuery,
+  PostingPatch,
+  RawPosting,
+} from '@devilray/shared';
+import type { Env } from '../config/env';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -8,6 +16,8 @@ export interface UpsertResult {
   found: number;
   insertedIds: number[];
   updated: number;
+  /** Subset of insertedIds that were flagged as reposts of an earlier posting. */
+  repostIds: number[];
 }
 
 const LIST_SELECT = {
@@ -22,23 +32,36 @@ const LIST_SELECT = {
   status: true,
   seen: true,
   starred: true,
+  repostOfId: true,
   firstSeenAt: true,
   lastSeenAt: true,
 } satisfies Prisma.JobPostingSelect;
 
 @Injectable()
 export class PostingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(PostingsService.name);
+  private readonly repostWindowDays: number;
+  private readonly staleDays: number;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    config: ConfigService<Env, true>,
+  ) {
+    this.repostWindowDays = config.get('REPOST_WINDOW_DAYS', { infer: true });
+    this.staleDays = config.get('STALE_DAYS', { infer: true });
+  }
 
   /**
    * Insert new postings, refresh existing ones. Dedup key is (source, externalId).
-   * Returns ids of rows that were newly inserted; those are what the notify queue announces.
+   * New rows whose fingerprint matches a posting seen within the repost window get
+   * `repostOfId` so the notifier can skip them.
    */
   async upsertMany(postings: RawPosting[]): Promise<UpsertResult> {
     const unique = dedupeByKey(postings);
-    if (unique.length === 0) return { found: 0, insertedIds: [], updated: 0 };
+    if (unique.length === 0) return { found: 0, insertedIds: [], updated: 0, repostIds: [] };
 
     const now = new Date();
+    const repostSince = new Date(now.getTime() - this.repostWindowDays * 86_400_000);
 
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.jobPosting.findMany({
@@ -50,10 +73,26 @@ export class PostingsService {
       const existingByKey = new Map(existing.map((e) => [key(e.source, e.externalId), e]));
 
       const toInsert = unique.filter((p) => !existingByKey.has(key(p.source, p.externalId)));
-      const inserted = toInsert.length
+      const rows = toInsert.map((p) => ({ ...toRow(p), lastSeenAt: now }));
+
+      // Repost lookup: earliest prior posting per fingerprint inside the window.
+      const priorByFp = new Map<string, number>();
+      if (rows.length) {
+        const prior = await tx.jobPosting.findMany({
+          where: {
+            fingerprint: { in: [...new Set(rows.map((r) => r.fingerprint))] },
+            firstSeenAt: { gte: repostSince },
+          },
+          select: { id: true, fingerprint: true },
+          orderBy: { id: 'asc' },
+        });
+        for (const p of prior) if (!priorByFp.has(p.fingerprint)) priorByFp.set(p.fingerprint, p.id);
+      }
+
+      const inserted = rows.length
         ? await tx.jobPosting.createManyAndReturn({
-            data: toInsert.map((p) => ({ ...toRow(p), lastSeenAt: now })),
-            select: { id: true },
+            data: rows.map((r) => ({ ...r, repostOfId: priorByFp.get(r.fingerprint) ?? null })),
+            select: { id: true, repostOfId: true },
           })
         : [];
 
@@ -80,15 +119,41 @@ export class PostingsService {
         });
       }
 
-      return { found: unique.length, insertedIds: inserted.map((r) => r.id), updated };
+      return {
+        found: unique.length,
+        insertedIds: inserted.map((r) => r.id),
+        updated,
+        repostIds: inserted.filter((r) => r.repostOfId !== null).map((r) => r.id),
+      };
     });
   }
 
-  /** Cursor-paginated list, newest first (id desc). */
+  /**
+   * Expiry pass: past due date, or not seen by any crawl for STALE_DAYS.
+   * Rows are never deleted; a posting that reappears is flipped back to ACTIVE by upsertMany.
+   */
+  async expireStale(now = new Date()): Promise<ExpireResult> {
+    const today = new Date(now.toISOString().slice(0, 10));
+    const staleBefore = new Date(now.getTime() - this.staleDays * 86_400_000);
+
+    const byDueDate = await this.prisma.jobPosting.updateMany({
+      where: { status: 'ACTIVE', dueDate: { lt: today } },
+      data: { status: 'EXPIRED' },
+    });
+    const byStale = await this.prisma.jobPosting.updateMany({
+      where: { status: 'ACTIVE', lastSeenAt: { lt: staleBefore } },
+      data: { status: 'EXPIRED' },
+    });
+    const result = { byDueDate: byDueDate.count, byStale: byStale.count };
+    this.logger.log(`expire pass: dueDate=${result.byDueDate} stale=${result.byStale}`);
+    return result;
+  }
+
+  /** Cursor-paginated list, newest first (id desc). ACTIVE only unless status is given. */
   async list(q: PostingListQuery): Promise<PostingList> {
     const where: Prisma.JobPostingWhereInput = {
       source: q.source,
-      status: q.status,
+      status: q.status === 'all' ? undefined : (q.status ?? 'ACTIVE'),
       seen: q.unseen ? false : undefined,
       starred: q.starred ? true : undefined,
       id: q.cursor ? { lt: q.cursor } : undefined,
@@ -153,6 +218,20 @@ function contentHash(p: RawPosting): string {
     .digest('hex');
 }
 
+/** Must stay in sync with the SQL backfill in the phase6 migration. */
+export function normalizeForFingerprint(company: string, title: string): string {
+  const c = company
+    .replace(/주식회사|㈜|\(주\)|\(유\)/g, '')
+    .toLowerCase()
+    .replace(/[^0-9a-z가-힣]/g, '');
+  const t = title.toLowerCase().replace(/[^0-9a-z가-힣]/g, '');
+  return `${c}|${t}`;
+}
+
+export function fingerprint(company: string, title: string): string {
+  return createHash('md5').update(normalizeForFingerprint(company, title)).digest('hex');
+}
+
 function toRow(p: RawPosting) {
   return {
     source: p.source,
@@ -163,6 +242,7 @@ function toRow(p: RawPosting) {
     url: p.url,
     dueDate: p.dueDate ? new Date(p.dueDate) : null,
     contentHash: contentHash(p),
+    fingerprint: fingerprint(p.company, p.title),
     raw: p.raw as object,
   };
 }

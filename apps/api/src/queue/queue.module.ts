@@ -9,6 +9,7 @@ import type { Env } from '../config/env';
 import { runsWorkers } from '../config/role';
 import { CrawlerModule } from '../crawler/crawler.module';
 import { NotifierModule } from '../notifier/notifier.module';
+import { PostingsModule } from '../postings/postings.module';
 import { SchedulerService } from '../scheduler/scheduler.service';
 import { CrawlController } from './crawl.controller';
 import { SaraminCrawlProcessor, WantedCrawlProcessor } from './crawl.processor';
@@ -54,6 +55,7 @@ export class QueueModule {
         ...QUEUE_NAMES.map((name) => BullBoardModule.forFeature({ name, adapter: BullMQAdapter })),
         CrawlerModule,
         NotifierModule,
+        PostingsModule,
         ...(workerSide ? [ScheduleModule.forRoot()] : []),
       ],
       controllers: [CrawlController],

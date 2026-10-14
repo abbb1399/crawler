@@ -40,7 +40,7 @@ pnpm dev
 | 3 | BullMQ 큐 + Bull Board | ✅ |
 | 4 | 사람인 (Playwright) | ✅ |
 | 5 | Next.js 프론트 | ✅ |
-| 6 | 텔레그램 + 중복 강화 + 운영 | |
+| 6 | 만료 처리 + 재게시 감지 + 실패 경고 + 자동 시작 | ✅ |
 
 ## DB / 크롤 명령
 
@@ -102,3 +102,28 @@ CRAWL_ON_BOOT=true             # 기동 직후 1회 실행 (개발용)
 - `/runs` 최근 50회 실행 이력.
 - API 주소는 `API_URL`(기본 `http://localhost:3000`). Bull Board 링크는 `NEXT_PUBLIC_BULL_BOARD_URL`.
 - 인증 없음. 로컬 전용.
+
+## 운영
+
+### 만료 / 재게시
+- 매일 `MAINTENANCE_CRON`(기본 03:15)에 만료 패스: 마감일이 지났거나 `STALE_DAYS`(14일) 동안 어떤 수집에도 안 잡힌 공고를 EXPIRED로 바꿉니다. 삭제는 안 하고, 다시 잡히면 ACTIVE로 복귀. 대시보드 기본 목록은 ACTIVE만 보여주고 "만료 포함"으로 전체를 봅니다. 수동 실행: `POST /maintenance/expire`
+- 재게시: 회사명+제목을 정규화한 md5 `fingerprint`가 `REPOST_WINDOW_DAYS`(45일) 안에 이미 있으면 새 공고에 `repostOfId`를 달고 **알림을 보내지 않습니다**(저장은 됨, 목록에 "재게시" 표시). 사람인이 같은 공고를 새 번호로 다시 올리는 경우 대응. 알림까지 받으려면 `NOTIFY_REPOSTS=true`.
+- 밀린 알림 재발송: `POST /maintenance/notify`
+
+### 실패 경고
+- 크롤 잡이 3회 재시도 후 최종 실패하면 슬랙에 ⚠️ 경고를 보냅니다(소스별 `ALERT_MIN_INTERVAL_MIN`, 기본 6시간 안에는 한 번만). 사이트 레이아웃 변경이나 차단을 알아채는 유일한 수단입니다. 테스트: `POST /maintenance/test-alert`
+
+### 자동 시작 (Windows)
+```powershell
+pnpm build                                                               # api dist + web .next
+powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1   # 로그온 +30초에 scripts\start.cmd 실행
+Start-ScheduledTask -TaskName devilray                                   # 지금 바로 띄우기
+scripts\stop.cmd                                                         # 중지
+powershell -ExecutionPolicy Bypass -File scripts\uninstall-autostart.ps1
+```
+- `start.cmd`는 Docker Desktop이 뜰 때까지 기다렸다가 `docker compose up -d` → 마이그레이션 → API(:3000)/웹(:3001)을 최소화된 창으로 띄웁니다. 로그는 `storage/logs/`.
+- 코드를 바꿨으면 `pnpm build` 후 `scripts\stop.cmd` → `Start-ScheduledTask -TaskName devilray`.
+
+### 안 만든 것 (필요해지면)
+- 텔레그램: `notifier/`에 `Notifier` 구현체 하나 추가하고 `notifier.module.ts`의 배열에 넣으면 끝.
+- 서버 배포용 Dockerfile: 로컬 전용이라 생략.

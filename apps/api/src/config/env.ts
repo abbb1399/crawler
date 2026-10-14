@@ -30,6 +30,17 @@ export const EnvSchema = z.object({
   /** Where failure screenshots go. */
   DEBUG_DIR: z.string().default('storage/debug'),
 
+  /** Nightly maintenance (expiry pass). */
+  MAINTENANCE_CRON: z.string().min(9).default('15 3 * * *'),
+  /** ACTIVE postings not seen by any crawl for this many days are marked EXPIRED. */
+  STALE_DAYS: z.coerce.number().int().min(1).default(14),
+  /** A new posting whose fingerprint was seen within this window counts as a repost. */
+  REPOST_WINDOW_DAYS: z.coerce.number().int().min(1).default(45),
+  /** Announce reposts too (default: suppress). */
+  NOTIFY_REPOSTS: z.stringbool().default(false),
+  /** Same alert key is not re-sent within this many minutes. */
+  ALERT_MIN_INTERVAL_MIN: z.coerce.number().int().min(1).default(360),
+
   /** Cron expression for enqueueing crawls of all enabled profiles. */
   CRAWL_CRON: z.string().min(9).default('*/30 * * * *'),
   /** Also enqueue one full crawl ~2s after startup. Handy in dev. */

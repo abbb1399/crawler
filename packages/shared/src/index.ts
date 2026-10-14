@@ -74,6 +74,8 @@ export const Posting = z.object({
   status: PostingStatus,
   seen: z.boolean(),
   starred: z.boolean(),
+  /** Set when this looks like a re-registration of an earlier posting. */
+  repostOfId: z.number().nullable(),
   firstSeenAt: z.string(),
   lastSeenAt: z.string(),
 });
@@ -82,7 +84,8 @@ export type Posting = z.infer<typeof Posting>;
 /** Query string for GET /postings. All optional; cursor is the last id of the previous page. */
 export const PostingListQuery = z.object({
   source: JobSource.optional(),
-  status: PostingStatus.optional(),
+  /** Omit for ACTIVE only; "all" for everything. */
+  status: z.union([PostingStatus, z.literal('all')]).optional(),
   q: z.string().trim().min(1).max(100).optional(),
   unseen: z.stringbool().optional(),
   starred: z.stringbool().optional(),
@@ -151,9 +154,16 @@ export const CrawlRun = z.object({
 });
 export type CrawlRun = z.infer<typeof CrawlRun>;
 
+export const ExpireResult = z.object({
+  byDueDate: z.number(),
+  byStale: z.number(),
+});
+export type ExpireResult = z.infer<typeof ExpireResult>;
+
 export const Stats = z.object({
   postings: z.object({
     total: z.number(),
+    active: z.number(),
     unseen: z.number(),
     starred: z.number(),
     bySource: z.array(z.object({ source: JobSource, count: z.number() })),

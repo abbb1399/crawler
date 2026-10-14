@@ -1,7 +1,8 @@
 import { BadRequestException, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { JobSource, type EnqueueResult, type Stats } from '@devilray/shared';
+import { JobSource, type EnqueueResult, type ExpireResult, type Stats } from '@devilray/shared';
 import { CrawlerService } from '../crawler/crawler.service';
 import { NotificationsService } from '../notifier/notifications.service';
+import { PostingsService } from '../postings/postings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from './queue.service';
 
@@ -11,6 +12,7 @@ export class CrawlController {
     private readonly queues: QueueService,
     private readonly crawler: CrawlerService,
     private readonly notifications: NotificationsService,
+    private readonly postings: PostingsService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -48,6 +50,25 @@ export class CrawlController {
     return { ...summary, notify };
   }
 
+  /** Expiry pass on demand (the nightly cron does the same). */
+  @Post('maintenance/expire')
+  expire(): Promise<ExpireResult> {
+    return this.postings.expireStale();
+  }
+
+  /** Re-dispatch anything still pending (normally the notify queue does this after a crawl). */
+  @Post('maintenance/notify')
+  notify() {
+    return this.notifications.dispatchPending();
+  }
+
+  /** Sends a test alert through every enabled channel. */
+  @Post('maintenance/test-alert')
+  async testAlert() {
+    const sent = await this.notifications.alert(`test:${Date.now()}`, '테스트 경고입니다. 알림 채널이 동작합니다.');
+    return { sent, channels: this.notifications.enabledChannels() };
+  }
+
   @Get('queues')
   counts() {
     return this.queues.counts();
@@ -55,17 +76,19 @@ export class CrawlController {
 
   @Get('stats')
   async stats(): Promise<Stats> {
-    const [total, unseen, starred, bySource, lastRun, queues] = await Promise.all([
+    const [total, active, unseen, starred, bySource, lastRun, queues] = await Promise.all([
       this.prisma.jobPosting.count(),
-      this.prisma.jobPosting.count({ where: { seen: false } }),
+      this.prisma.jobPosting.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.jobPosting.count({ where: { seen: false, status: 'ACTIVE' } }),
       this.prisma.jobPosting.count({ where: { starred: true } }),
-      this.prisma.jobPosting.groupBy({ by: ['source'], _count: { _all: true } }),
+      this.prisma.jobPosting.groupBy({ by: ['source'], where: { status: 'ACTIVE' }, _count: { _all: true } }),
       this.prisma.crawlRun.findFirst({ orderBy: { id: 'desc' }, select: { finishedAt: true, startedAt: true } }),
       this.queues.counts(),
     ]);
     return {
       postings: {
         total,
+        active,
         unseen,
         starred,
         bySource: bySource.map((g) => ({ source: g.source, count: g._count._all })),

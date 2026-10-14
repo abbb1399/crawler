@@ -20,6 +20,8 @@ export interface Notifier {
   /** False when the channel is not configured (e.g. missing webhook URL). */
   readonly enabled: boolean;
   send(postings: NotifiablePosting[]): Promise<void>;
+  /** Plain-text operational message (crawler failures etc.). */
+  sendText(text: string): Promise<void>;
 }
 
 export const NOTIFIERS = Symbol('NOTIFIERS');

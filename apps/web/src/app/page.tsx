@@ -6,7 +6,7 @@ import { fmtDateTime, fmtDue } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
-type Search = { source?: string; q?: string; unseen?: string; starred?: string; cursor?: string };
+type Search = { source?: string; q?: string; unseen?: string; starred?: string; expired?: string; cursor?: string };
 
 export default async function PostingsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
@@ -15,6 +15,7 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
     q: sp.q || undefined,
     unseen: sp.unseen === '1' ? 'true' : undefined,
     starred: sp.starred === '1' ? 'true' : undefined,
+    status: sp.expired === '1' ? 'all' : undefined,
   };
   const [stats, list] = await Promise.all([
     api.stats(),
@@ -31,8 +32,8 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
         <div>
           <h1 className="text-xl font-semibold">공고</h1>
           <p className="mt-1 text-sm text-muted">
-            전체 {stats.postings.total.toLocaleString()} · 안 읽음 {stats.postings.unseen} · 별표{' '}
-            {stats.postings.starred}
+            활성 {stats.postings.active.toLocaleString()} / 전체 {stats.postings.total.toLocaleString()} · 안 읽음{' '}
+            {stats.postings.unseen} · 별표 {stats.postings.starred}
             {stats.postings.bySource.map((s) => (
               <span key={s.source} className="chip ml-2">
                 {SOURCE_LABEL[s.source]} {s.count}
@@ -64,8 +65,11 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
         <label className="flex items-center gap-1">
           <input type="checkbox" name="starred" value="1" defaultChecked={sp.starred === '1'} /> 별표만
         </label>
+        <label className="flex items-center gap-1">
+          <input type="checkbox" name="expired" value="1" defaultChecked={sp.expired === '1'} /> 만료 포함
+        </label>
         <button className="btn btn-primary">적용</button>
-        {(sp.q || sp.source || sp.unseen || sp.starred) && (
+        {(sp.q || sp.source || sp.unseen || sp.starred || sp.expired) && (
           <Link href="/" className="text-muted hover:text-foreground">
             초기화
           </Link>
@@ -126,6 +130,11 @@ function PostingRow({ p }: { p: Posting }) {
           <span className={due.urgent ? 'font-medium text-red-500' : ''}>마감 {due.label}</span>
           <span>수집 {fmtDateTime(p.firstSeenAt)}</span>
           {p.status === 'EXPIRED' && <span className="chip">만료</span>}
+          {p.repostOfId !== null && (
+            <span className="chip" title={`#${p.repostOfId} 재게시로 판단, 알림 생략`}>
+              재게시
+            </span>
+          )}
         </div>
       </div>
       <form action={toggleSeen}>

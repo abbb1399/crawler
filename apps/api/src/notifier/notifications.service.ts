@@ -23,6 +23,9 @@ export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private readonly maxPerRun: number;
   private readonly lookbackHours: number;
+  private readonly notifyReposts: boolean;
+  private readonly alertIntervalMs: number;
+  private readonly lastAlertAt = new Map<string, number>();
 
   constructor(
     @Inject(NOTIFIERS) private readonly notifiers: Notifier[],
@@ -31,6 +34,8 @@ export class NotificationsService {
   ) {
     this.maxPerRun = config.get('NOTIFY_MAX_PER_RUN', { infer: true });
     this.lookbackHours = config.get('NOTIFY_LOOKBACK_HOURS', { infer: true });
+    this.notifyReposts = config.get('NOTIFY_REPOSTS', { infer: true });
+    this.alertIntervalMs = config.get('ALERT_MIN_INTERVAL_MIN', { infer: true }) * 60_000;
   }
 
   enabledChannels(): NotifyChannel[] {
@@ -48,12 +53,38 @@ export class NotificationsService {
     return total;
   }
 
+  /**
+   * Operational alert (crawler broke, etc.). Throttled per key so a broken site does
+   * not page every 30 minutes. Never throws: alerting must not break the caller.
+   */
+  async alert(key: string, text: string): Promise<boolean> {
+    const now = Date.now();
+    const last = this.lastAlertAt.get(key) ?? 0;
+    if (now - last < this.alertIntervalMs) {
+      this.logger.debug(`alert "${key}" throttled`);
+      return false;
+    }
+    let sent = false;
+    for (const notifier of this.notifiers) {
+      if (!notifier.enabled) continue;
+      try {
+        await notifier.sendText(`⚠️ devilray: ${text}`);
+        sent = true;
+      } catch (err) {
+        this.logger.error(`${notifier.channel} alert failed: ${(err as Error).message}`);
+      }
+    }
+    if (sent) this.lastAlertAt.set(key, now);
+    return sent;
+  }
+
   private async dispatchForChannel(notifier: Notifier): Promise<DispatchResult> {
     const since = new Date(Date.now() - this.lookbackHours * 3_600_000);
     const pending = await this.prisma.jobPosting.findMany({
       where: {
         status: 'ACTIVE',
         firstSeenAt: { gte: since },
+        repostOfId: this.notifyReposts ? undefined : null,
         notifications: { none: { channel: notifier.channel, kind: 'NEW', ok: true } },
       },
       orderBy: { firstSeenAt: 'asc' },

@@ -62,6 +62,10 @@ model JobPosting {
   dueDate     DateTime?     @db.Date
   /// sha1(title|company|dueDate) — changes mean the posting was edited, not re-posted.
   contentHash String
+  /// md5(normalized company|title). Same job re-registered under a new externalId shares it.
+  fingerprint String
+  /// Earlier posting with the same fingerprint seen within the repost window; such rows are not announced.
+  repostOfId  Int?
   status      PostingStatus @default(ACTIVE)
   raw         Json
   firstSeenAt DateTime      @default(now())
@@ -74,6 +78,8 @@ model JobPosting {
   @@unique([source, externalId])
   @@index([status, lastSeenAt])
   @@index([firstSeenAt])
+  @@index([fingerprint])
+  @@index([dueDate])
 }
 
 /// One execution of a crawl for (source, profile).

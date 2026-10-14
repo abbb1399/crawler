@@ -5,7 +5,7 @@ import type { NotifiablePosting, Notifier } from './notifier';
 
 const SOURCE_LABEL: Record<string, string> = {
   WANTED: '원티드',
-  JOBKOREA: '잡코리아',
+  SARAMIN: '사람인',
 };
 
 /**

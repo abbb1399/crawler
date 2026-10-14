@@ -19,6 +19,15 @@ export const EnvSchema = z.object({
   /** Max result pages per keyword for Wanted (20 items/page). */
   WANTED_MAX_PAGES: z.coerce.number().int().min(1).max(20).default(3),
 
+  /** Max result pages per keyword for Saramin (40 items/page). */
+  SARAMIN_MAX_PAGES: z.coerce.number().int().min(1).max(10).default(2),
+  /** Playwright: headless unless explicitly false (headed is the main debugging tool). */
+  PW_HEADLESS: z.stringbool().default(true),
+  /** Persistent browser profile dir (cookies survive restarts). Relative to apps/api. */
+  PW_PROFILE_DIR: z.string().default('.data/pw-profile'),
+  /** Where failure screenshots go. */
+  DEBUG_DIR: z.string().default('storage/debug'),
+
   /** Cron expression for enqueueing crawls of all enabled profiles. */
   CRAWL_CRON: z.string().min(9).default('*/30 * * * *'),
   /** Also enqueue one full crawl ~2s after startup. Handy in dev. */

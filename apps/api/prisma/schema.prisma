@@ -9,7 +9,7 @@ datasource db {
 
 enum JobSource {
   WANTED
-  JOBKOREA
+  SARAMIN
 }
 
 enum PostingStatus {

@@ -17,7 +17,7 @@ async function main() {
       // Site search is fuzzy; require one of these in the title to keep notifications relevant.
       includeTitle: ['node', 'nest', 'backend', '백엔드', '서버'],
       excludeTitle: [],
-      sources: ['WANTED', 'JOBKOREA'],
+      sources: ['WANTED', 'SARAMIN'],
     },
     // Re-running the seed re-applies the defaults to the "default" profile only.
     update: {

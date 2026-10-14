@@ -11,7 +11,7 @@ import { CrawlerModule } from '../crawler/crawler.module';
 import { NotifierModule } from '../notifier/notifier.module';
 import { SchedulerService } from '../scheduler/scheduler.service';
 import { CrawlController } from './crawl.controller';
-import { WantedCrawlProcessor } from './crawl.processor';
+import { SaraminCrawlProcessor, WantedCrawlProcessor } from './crawl.processor';
 import { NotifyProcessor } from './notify.processor';
 import { crawlQueueName, NOTIFY_QUEUE, QUEUED_SOURCES } from './queue.constants';
 import { QueueService } from './queue.service';
@@ -59,7 +59,7 @@ export class QueueModule {
       controllers: [CrawlController],
       providers: [
         QueueService,
-        ...(workerSide ? [WantedCrawlProcessor, NotifyProcessor, SchedulerService] : []),
+        ...(workerSide ? [WantedCrawlProcessor, SaraminCrawlProcessor, NotifyProcessor, SchedulerService] : []),
       ],
       exports: [QueueService],
     };

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Job sources supported by the crawler. */
-export const JobSource = z.enum(['WANTED', 'JOBKOREA']);
+export const JobSource = z.enum(['WANTED', 'SARAMIN']);
 export type JobSource = z.infer<typeof JobSource>;
 
 /** Shape returned by GET /health. */

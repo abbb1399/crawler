@@ -22,10 +22,14 @@ export class QueueService implements OnModuleInit {
 
   constructor(
     @InjectQueue(crawlQueueName('WANTED')) wanted: Queue<CrawlJobData>,
+    @InjectQueue(crawlQueueName('SARAMIN')) saramin: Queue<CrawlJobData>,
     @InjectQueue(NOTIFY_QUEUE) private readonly notifyQueue: Queue<NotifyJobData>,
     config: ConfigService<Env, true>,
   ) {
-    this.crawlQueues = new Map([['WANTED', wanted]]);
+    this.crawlQueues = new Map([
+      ['WANTED', wanted],
+      ['SARAMIN', saramin],
+    ]);
     this.drainOnBoot = config.get('QUEUE_DRAIN_ON_BOOT', { infer: true });
   }
 

@@ -48,3 +48,7 @@ export const CRAWL_WORKER_OPTIONS = { concurrency: 1, lockDuration: 300_000 } as
 
 @Processor(crawlQueueName('WANTED'), CRAWL_WORKER_OPTIONS)
 export class WantedCrawlProcessor extends BaseCrawlProcessor {}
+
+/** Playwright-backed; concurrency 1 keeps it to one browser at a time. */
+@Processor(crawlQueueName('SARAMIN'), CRAWL_WORKER_OPTIONS)
+export class SaraminCrawlProcessor extends BaseCrawlProcessor {}

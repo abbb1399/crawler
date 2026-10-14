@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PostingsModule } from '../postings/postings.module';
+import { BrowserService } from './browser.service';
 import { CrawlerController } from './crawler.controller';
 import { CrawlerService } from './crawler.service';
+import { SaraminAdapter } from './saramin.adapter';
 import { SOURCE_ADAPTERS } from './source-adapter';
 import { WantedAdapter } from './wanted.adapter';
 
@@ -9,12 +11,13 @@ import { WantedAdapter } from './wanted.adapter';
   imports: [PostingsModule],
   controllers: [CrawlerController],
   providers: [
+    BrowserService,
     WantedAdapter,
+    SaraminAdapter,
     {
       provide: SOURCE_ADAPTERS,
-      // JobKoreaAdapter joins this list in Phase 4.
-      useFactory: (wanted: WantedAdapter) => [wanted],
-      inject: [WantedAdapter],
+      useFactory: (wanted: WantedAdapter, saramin: SaraminAdapter) => [wanted, saramin],
+      inject: [WantedAdapter, SaraminAdapter],
     },
     CrawlerService,
   ],

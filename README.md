@@ -1,4 +1,4 @@
-# devilray — 원티드/잡코리아 공고 수집기
+# devilray — 원티드/사람인 공고 수집기
 
 키워드 기반으로 채용 공고를 수집해 DB에 쌓고, 새 공고가 뜨면 슬랙/텔레그램으로 알림.
 
@@ -36,7 +36,7 @@ pnpm dev
 | 1 | Prisma + 원티드 수집기 (수동 트리거) | ✅ |
 | 2 | Slack 알림 + 크론 + 제목 필터 | ✅ |
 | 3 | BullMQ 큐 + Bull Board | ✅ |
-| 4 | 잡코리아 (Playwright) | |
+| 4 | 사람인 (Playwright) | ✅ |
 | 5 | Next.js 프론트 | |
 | 6 | 텔레그램 + 중복 강화 + 운영 | |
 
@@ -50,6 +50,7 @@ pnpm --filter api db:studio      # Prisma Studio
 # 수동 크롤 트리거 (profileId 기본 1)
 curl -X POST "localhost:3000/crawl/wanted?profileId=1"        # 큐에 넣고 바로 반환 { queue, jobId }
 curl -X POST "localhost:3000/crawl/wanted/sync?profileId=1"   # 인라인 실행 후 결과 반환 (디버깅용)
+curl -X POST "localhost:3000/crawl/saramin?profileId=1"       # 사람인 (Playwright)
 curl "localhost:3000/queues"                                  # 큐별 카운트
 # Bull Board UI: http://localhost:3000/admin/queues
 curl "localhost:3000/postings?limit=20&source=wanted"
@@ -76,9 +77,17 @@ CRAWL_ON_BOOT=true             # 기동 직후 1회 실행 (개발용)
 크론 tick ─► crawl-wanted 큐 ─► WantedCrawlProcessor ─► 신규 insert 있으면 ─► notify 큐 ─► NotifyProcessor ─► Slack
 ```
 
-- 소스별 크롤 큐(`crawl-wanted`, Phase 4에서 `crawl-jobkorea`). concurrency 1, lockDuration 5분, 3회 재시도(지수 백오프 10s).
+- 소스별 크롤 큐(`crawl-wanted`, `crawl-saramin`). concurrency 1, lockDuration 5분, 3회 재시도(지수 백오프 10s).
 - 크롤 jobId = `{source}-{profileId}-{YYYYMMDDHHmm}`. 같은 분에 중복 enqueue 돼도 하나로 합쳐집니다.
 - notify 잡은 미발송 건이 하나라도 실패하면 throw 해서 BullMQ가 재시도합니다. 발송 자체의 멱등성은 NotificationLog가 보장.
 - `ROLE=api`로 띄우면 HTTP + enqueue만 하고 워커/크론은 돌지 않습니다(기본 `all`). 나중에 프로세스를 나눌 때 사용.
 - `QUEUE_DRAIN_ON_BOOT=true`면 기동 시 waiting/delayed 잡을 비웁니다.
 - 주의: BullMQ 6는 `ioredis`를 직접 의존성으로 요구합니다. 없으면 재연결 에러가 무한 로그로 찍힙니다.
+
+## 사람인 (Playwright)
+
+- 검색 결과 페이지(`/zf_user/search/recruit`)는 서버 렌더링이라 Playwright가 `.item_recruit`를 `page.$$eval`로 파싱합니다. 키워드당 `SARAMIN_MAX_PAGES`(기본 2, 40건/페이지).
+- 브라우저는 크롤 1회마다 열고 닫습니다. Windows watch 모드에서 chrome 고아 프로세스가 쌓이는 걸 막기 위한 선택이며, 프로필(`.data/pw-profile`)은 유지돼 쿠키가 남습니다.
+- 차단/레이아웃 변경으로 결과가 안 잡히면 `storage/debug/`에 스크린샷을 남기고 실패합니다. `PW_HEADLESS=false`로 창을 띄워 보면서 디버깅.
+- 크로미엄 설치: `pnpm --filter api exec playwright install chromium` (최초 1회).
+- 고아 프로세스 정리가 필요하면: `taskkill /F /IM chrome-headless-shell.exe`

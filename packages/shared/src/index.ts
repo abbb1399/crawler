@@ -81,7 +81,7 @@ export const Posting = z.object({
 });
 export type Posting = z.infer<typeof Posting>;
 
-/** Query string for GET /postings. All optional; cursor is the last id of the previous page. */
+/** Query string for GET /postings. All optional; page is 1-based. */
 export const PostingListQuery = z.object({
   source: JobSource.optional(),
   /** Omit for ACTIVE only; "all" for everything. */
@@ -89,14 +89,16 @@ export const PostingListQuery = z.object({
   q: z.string().trim().min(1).max(100).optional(),
   unseen: z.stringbool().optional(),
   starred: z.stringbool().optional(),
-  cursor: z.coerce.number().int().positive().optional(),
+  page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(30),
 });
 export type PostingListQuery = z.infer<typeof PostingListQuery>;
 
 export const PostingList = z.object({
   items: z.array(Posting),
-  nextCursor: z.number().nullable(),
+  total: z.number(),
+  page: z.number(),
+  pageCount: z.number(),
 });
 export type PostingList = z.infer<typeof PostingList>;
 

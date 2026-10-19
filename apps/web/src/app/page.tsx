@@ -1,6 +1,7 @@
 import { JobSource, SOURCE_LABEL, type Posting } from '@devilray/shared';
 import { Eye, EyeOff, Star } from 'lucide-react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,6 +9,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { markAllSeen, toggleSeen, toggleStar } from '@/lib/actions';
@@ -15,7 +25,7 @@ import { fmtDateTime, fmtDue } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
-type Search = { source?: string; q?: string; unseen?: string; starred?: string; expired?: string; cursor?: string };
+type Search = { source?: string; q?: string; unseen?: string; starred?: string; expired?: string; page?: string };
 
 export default async function PostingsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
@@ -26,14 +36,14 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
     starred: sp.starred === '1' ? 'true' : undefined,
     status: sp.expired === '1' ? 'all' : undefined,
   };
+  const page = Math.max(1, Number.parseInt(sp.page ?? '', 10) || 1);
   const [stats, list] = await Promise.all([
     api.stats(),
-    api.postings({ ...filters, cursor: sp.cursor, limit: '30' }),
+    api.postings({ ...filters, page: String(page), limit: '30' }),
   ]);
 
-  const nextHref = list.nextCursor
-    ? `/?${new URLSearchParams({ ...stripUndef(sp), cursor: String(list.nextCursor) })}`
-    : null;
+  // e.g. the last page emptied out after "읽음" under the 안 읽음만 filter
+  if (list.items.length === 0 && page > list.pageCount) redirect(pageHref(sp, list.pageCount));
 
   return (
     <div className="space-y-5">
@@ -110,12 +120,40 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
         </Card>
       )}
 
-      {nextHref && (
-        <div className="text-center">
-          <Button asChild variant="outline">
-            <Link href={nextHref}>더 보기</Link>
-          </Button>
-        </div>
+      {list.pageCount > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href={pageHref(sp, page - 1)}
+                text="이전"
+                aria-disabled={page <= 1}
+                className={page <= 1 ? 'pointer-events-none opacity-50' : undefined}
+              />
+            </PaginationItem>
+            {pageNumbers(page, list.pageCount).map((n, i) =>
+              n === null ? (
+                <PaginationItem key={`gap-${i}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={n}>
+                  <PaginationLink href={pageHref(sp, n)} isActive={n === page}>
+                    {n}
+                  </PaginationLink>
+                </PaginationItem>
+              ),
+            )}
+            <PaginationItem>
+              <PaginationNext
+                href={pageHref(sp, page + 1)}
+                text="다음"
+                aria-disabled={page >= list.pageCount}
+                className={page >= list.pageCount ? 'pointer-events-none opacity-50' : undefined}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
     </div>
   );
@@ -170,6 +208,21 @@ function PostingRow({ p }: { p: Posting }) {
   );
 }
 
-function stripUndef(o: Record<string, string | undefined>): Record<string, string> {
-  return Object.fromEntries(Object.entries(o).filter(([k, v]) => v && k !== 'cursor')) as Record<string, string>;
+function pageHref(sp: Search, n: number): string {
+  const qs = new URLSearchParams(
+    Object.entries(sp).filter((e): e is [string, string] => !!e[1] && e[0] !== 'page'),
+  );
+  if (n > 1) qs.set('page', String(n));
+  const s = qs.toString();
+  return s ? `/?${s}` : '/';
+}
+
+/** 1 … 4 5 [6] 7 8 … 20 — first, last, and two on each side of the current page; null is a gap. */
+function pageNumbers(page: number, pageCount: number): (number | null)[] {
+  const out: (number | null)[] = [];
+  for (let n = 1; n <= pageCount; n++) {
+    if (n === 1 || n === pageCount || Math.abs(n - page) <= 2) out.push(n);
+    else if (out[out.length - 1] !== null) out.push(null);
+  }
+  return out;
 }

@@ -149,14 +149,13 @@ export class PostingsService {
     return result;
   }
 
-  /** Cursor-paginated list, newest first (id desc). ACTIVE only unless status is given. */
+  /** Offset-paginated list, newest first (id desc). ACTIVE only unless status is given. */
   async list(q: PostingListQuery): Promise<PostingList> {
     const where: Prisma.JobPostingWhereInput = {
       source: q.source,
       status: q.status === 'all' ? undefined : (q.status ?? 'ACTIVE'),
       seen: q.unseen ? false : undefined,
       starred: q.starred ? true : undefined,
-      id: q.cursor ? { lt: q.cursor } : undefined,
       OR: q.q
         ? [
             { title: { contains: q.q, mode: 'insensitive' } },
@@ -164,17 +163,21 @@ export class PostingsService {
           ]
         : undefined,
     };
-    const rows = await this.prisma.jobPosting.findMany({
-      where,
-      orderBy: { id: 'desc' },
-      take: q.limit + 1,
-      select: LIST_SELECT,
-    });
-    const hasMore = rows.length > q.limit;
-    const page = hasMore ? rows.slice(0, q.limit) : rows;
+    const [total, rows] = await this.prisma.$transaction([
+      this.prisma.jobPosting.count({ where }),
+      this.prisma.jobPosting.findMany({
+        where,
+        orderBy: { id: 'desc' },
+        skip: (q.page - 1) * q.limit,
+        take: q.limit,
+        select: LIST_SELECT,
+      }),
+    ]);
     return {
-      items: page.map(serialize),
-      nextCursor: hasMore ? page[page.length - 1]!.id : null,
+      items: rows.map(serialize),
+      total,
+      page: q.page,
+      pageCount: Math.max(1, Math.ceil(total / q.limit)),
     };
   }
 

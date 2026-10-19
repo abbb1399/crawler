@@ -101,7 +101,7 @@ CRAWL_ON_BOOT=true             # 기동 직후 1회 실행 (개발용)
 ## 대시보드 (apps/web)
 
 - Next.js 16 App Router + Tailwind v4. 페이지는 서버 컴포넌트가 API를 직접 읽고, 버튼/폼은 서버 액션으로 API를 호출합니다. 브라우저는 API에 직접 붙지 않습니다.
-- `/` 공고 목록: 소스·검색어·안 읽음·별표 필터, 커서 페이지네이션, 읽음/별표 토글, 모두 읽음.
+- `/` 공고 목록: 소스·검색어·안 읽음·별표 필터, 페이지 번호 페이지네이션(30건씩), 읽음/별표 토글, 모두 읽음.
 - `/profiles` 검색 프로필 CRUD, 활성 토글, "지금 수집"(모든 소스 enqueue).
 - `/runs` 최근 50회 실행 이력.
 - API 주소는 `API_URL`(기본 `http://localhost:3000`). Bull Board 링크는 `NEXT_PUBLIC_BULL_BOARD_URL`.

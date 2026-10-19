@@ -7,7 +7,7 @@ import { PostingsService } from './postings.service';
 export class PostingsController {
   constructor(private readonly postings: PostingsService) {}
 
-  /** GET /postings?source=&status=&q=&unseen=true&starred=true&cursor=&limit= */
+  /** GET /postings?source=&status=&q=&unseen=true&starred=true&page=&limit= */
   @Get()
   list(@Query(new ZodValidationPipe(PostingListQuery)) query: PostingListQuery) {
     return this.postings.list(query);

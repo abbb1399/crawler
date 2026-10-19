@@ -22,7 +22,8 @@ api ─► postgres, redis   (Caddy 외에는 포트를 열지 않음)
 | 방화벽 | 22/tcp (SSH, 키 인증만), 80/tcp, 443/tcp+udp. DB·Redis·API 포트는 외부에 열지 않음 |
 | 수집 주기 | 매일 08~22시 2시간마다 (KST, 하루 8회) |
 | 서버 설정 | 스왑 2GB (크로미엄 + Next 빌드 대비), 타임존 Asia/Seoul, Docker 엔진 |
-| 배포 권한 | Lightsail 권한(`lightsail:*`)만 가진 전용 IAM 사용자로 CLI에서 생성. 이후 재배포는 SSH만 사용 |
+| 배포 | `main` 푸시 → GitHub Actions(타입 체크 → 이미지 빌드 → GHCR → 서버 pull) 자동 배포 |
+| 인프라 생성 권한 | Lightsail 권한(`lightsail:*`)만 가진 전용 IAM 사용자로 CLI에서 생성 |
 
 ### 왜 Lightsail + 한 대인가
 
@@ -45,11 +46,22 @@ CRAWL_CRON=0 8-22/2 * * *     # 08~22시 2시간마다(하루 8회). 새벽엔 �
 
 `.env`를 바꾼 뒤에는 `docker compose -f docker-compose.prod.yml up -d`로 반영.
 
-## 재배포
+## 배포 (GitHub Actions, 자동)
 
-```bash
-scripts/deploy.sh ubuntu@<서버 IP>     # 작업 트리를 올리고 이미지 재빌드
+`main`에 푸시하면 `.github/workflows/deploy.yml`이 돈다. 문서(`*.md`, `docs/`)만 바뀐 푸시는 건너뛴다.
+
 ```
+check   pnpm install → shared 빌드 → pnpm -r typecheck
+build   api, web 이미지를 병렬 빌드 → ghcr.io/abbb1399/trawler-{api,web}:{latest,<sha>} 푸시 (레이어 캐시: GHA)
+deploy  서버에 SSH → deploy/server-deploy.sh 실행 → 사이트 200 확인
+```
+
+- 서버는 빌드하지 않는다. `git reset --hard origin/main`(compose·Caddyfile 갱신) → `docker compose pull` → `up -d`만 한다. Dockerfile이 의존성 레이어를 먼저 만들어서, 잠금 파일이 그대로면 서버가 받는 건 소스 레이어뿐이다.
+- 배포용 SSH 키는 `authorized_keys`에 `command="…/deploy/server-deploy.sh"`로 묶여 있어 이 스크립트 말고는 실행할 수 없다.
+- GHCR 인증은 워크플로 실행마다 발급되는 `GITHUB_TOKEN`을 SSH stdin으로 넘겨서 그 자리에서 로그인하고 로그아웃한다. 서버에 장기 토큰을 두지 않는다.
+- Secrets: `DEPLOY_SSH_KEY`(배포 키 개인키), `DEPLOY_HOST`(`ubuntu@<ip>`), `DEPLOY_KNOWN_HOSTS`(서버 호스트 키, 고정).
+- 롤백: 서버에서 `IMAGE_TAG=<커밋 sha> docker compose -f docker-compose.prod.yml up -d`.
+- 수동 배포(서버에서 직접 빌드): `scripts/deploy.sh ubuntu@<서버 IP>`. Actions가 막혔을 때만 쓴다.
 
 ## 운영 명령 (서버에서, `cd ~/trawler`)
 

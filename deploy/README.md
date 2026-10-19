@@ -9,6 +9,27 @@ AWS Lightsail(서울, Ubuntu 24.04, 2GB) 한 대에 `docker-compose.prod.yml`로
 api ─► postgres, redis   (Caddy 외에는 포트를 열지 않음)
 ```
 
+## 운영 환경
+
+| 항목 | 값 |
+|---|---|
+| URL | https://3-39-184-37.sslip.io (대시보드 공개, Bull Board `/admin/queues`는 Basic Auth) |
+| 클라우드 | AWS Lightsail, 서울 리전 `ap-northeast-2` (가용 영역 `ap-northeast-2a`) |
+| 인스턴스 | `trawler`, 번들 `small_3_0` (2 vCPU, RAM 2GB, SSD 60GB, 트래픽 3TB/월), Ubuntu 24.04 LTS |
+| 비용 | 월 $12 (고정 IP는 인스턴스에 붙어 있는 동안 무료) |
+| 고정 IP | `trawler-ip` = 3.39.184.37 |
+| 도메인 / TLS | [sslip.io](https://sslip.io) (IP를 그대로 쓰는 와일드카드 DNS) + Caddy가 Let's Encrypt 인증서를 자동 발급·갱신 |
+| 방화벽 | 22/tcp (SSH, 키 인증만), 80/tcp, 443/tcp+udp. DB·Redis·API 포트는 외부에 열지 않음 |
+| 서버 설정 | 스왑 2GB (크로미엄 + Next 빌드 대비), 타임존 Asia/Seoul, Docker 엔진 |
+| 배포 권한 | Lightsail 권한(`lightsail:*`)만 가진 전용 IAM 사용자로 CLI에서 생성. 이후 재배포는 SSH만 사용 |
+
+### 왜 Lightsail + 한 대인가
+
+- API가 상시 프로세스다. 30분 크론, BullMQ 워커, Playwright 크로미엄(수십 초, 메모리 수백 MB) 때문에 Lambda·Vercel 같은 서버리스에 맞지 않는다.
+- 개인용이라 트래픽이 거의 없다. Postgres/Redis를 관리형(RDS, ElastiCache)으로 나누면 비용만 몇 배가 된다.
+- 원티드/사람인은 국내 사이트라 서울 IP에서 수집하는 편이 안전하다. Lightsail은 서울 리전이 있고 요금이 고정이다.
+- 로컬 개발용 `docker-compose.yml`과 거의 같은 구성을 그대로 올릴 수 있다.
+
 ## 서버 .env (`~/trawler/.env`, 커밋하지 않음)
 
 ```

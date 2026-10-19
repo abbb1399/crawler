@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 10+ blocks postinstall scripts unless listed here.
+allowBuilds:
+  '@prisma/engines': true
+  '@prisma/client': true
+  prisma: true
+  esbuild: true
+  playwright: true
+  workerd: false
+  msgpackr-extract: false
+  unrs-resolver: false

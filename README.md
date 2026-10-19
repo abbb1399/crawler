@@ -2,7 +2,7 @@
 
 키워드 기반으로 채용 공고를 수집해 DB에 쌓고, 새 공고가 뜨면 슬랙/텔레그램으로 알림.
 
-**Live:** https://3-39-184-37.sslip.io  ·  AWS Lightsail(서울)에서 30분마다 수집 중. 배포 구성은 [deploy/README.md](deploy/README.md).
+**Live:** https://3-39-184-37.sslip.io  ·  AWS Lightsail(서울)에서 08~22시 2시간마다 수집 중. 배포 구성은 [deploy/README.md](deploy/README.md).
 
 ## 구조
 

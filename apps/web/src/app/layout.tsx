@@ -9,7 +9,7 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'devilray · 공고 수집기',
+  title: 'trawler · 공고 수집기',
   description: '원티드/사람인 채용 공고 수집 대시보드',
 };
 
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="border-b bg-card">
           <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-2">
             <Link href="/" className="font-semibold tracking-tight">
-              devilray
+              trawler
             </Link>
             <nav className="flex gap-1">
               {NAV.map((n) => (

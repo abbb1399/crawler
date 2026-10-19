@@ -1,5 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { JobSource } from '@devilray/shared';
+import { JobSource } from '@trawler/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Read-only lookups. Crawl triggers live in queue/crawl.controller.ts. */

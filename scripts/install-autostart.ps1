@@ -3,7 +3,7 @@
 # Remove with:             scripts\uninstall-autostart.ps1
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$taskName = 'devilray'
+$taskName = 'trawler'
 $startCmd = Join-Path $root 'scripts\start.cmd'
 
 if (-not (Test-Path $startCmd)) { throw "not found: $startCmd" }

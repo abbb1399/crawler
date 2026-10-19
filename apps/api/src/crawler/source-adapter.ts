@@ -1,4 +1,4 @@
-import type { JobSource, RawPosting, Region } from '@devilray/shared';
+import type { JobSource, RawPosting, Region } from '@trawler/shared';
 
 export interface FetchOptions {
   /** Upper bound on result pages to walk for this keyword. */

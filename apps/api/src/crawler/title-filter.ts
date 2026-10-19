@@ -1,4 +1,4 @@
-import { REGION_LABEL, type Region } from '@devilray/shared';
+import { REGION_LABEL, type Region } from '@trawler/shared';
 
 /**
  * Local relevance filter applied on top of the site's own keyword search, because

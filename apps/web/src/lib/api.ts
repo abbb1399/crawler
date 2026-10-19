@@ -8,7 +8,7 @@ import type {
   SearchProfileInput,
   SearchProfilePatch,
   Stats,
-} from '@devilray/shared';
+} from '@trawler/shared';
 
 /** Server-side only. The browser never talks to the API directly; mutations go through server actions. */
 const API_URL = process.env.API_URL ?? 'http://localhost:3000';

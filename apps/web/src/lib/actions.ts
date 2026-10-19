@@ -1,6 +1,6 @@
 'use server';
 
-import { JobSource, Region, SearchProfileInput, SearchProfilePatch } from '@devilray/shared';
+import { JobSource, Region, SearchProfileInput, SearchProfilePatch } from '@trawler/shared';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { api, ApiError } from './api';

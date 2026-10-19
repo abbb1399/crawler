@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { SOURCE_LABEL, type CrawlSummary } from '@devilray/shared';
+import { SOURCE_LABEL, type CrawlSummary } from '@trawler/shared';
 import { Job, UnrecoverableError } from 'bullmq';
 import { CrawlerService } from '../crawler/crawler.service';
 import { NotificationsService } from '../notifier/notifications.service';

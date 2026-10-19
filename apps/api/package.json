@@ -19,7 +19,7 @@
     "@bull-board/api": "^9.10.4",
     "@bull-board/express": "^9.10.4",
     "@bull-board/nestjs": "^9.10.4",
-    "@devilray/shared": "workspace:*",
+    "@trawler/shared": "workspace:*",
     "@nestjs/bullmq": "^12.0.0",
     "@nestjs/common": "^12.1.3",
     "@nestjs/config": "^12.0.1",

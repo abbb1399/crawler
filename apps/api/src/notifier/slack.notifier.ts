@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SOURCE_LABEL } from '@devilray/shared';
+import { SOURCE_LABEL } from '@trawler/shared';
 import type { Env } from '../config/env';
 import type { NotifiablePosting, Notifier } from './notifier';
 

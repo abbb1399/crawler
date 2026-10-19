@@ -1,4 +1,4 @@
-import { JobSource, SOURCE_LABEL, type Posting } from '@devilray/shared';
+import { JobSource, SOURCE_LABEL, type Posting } from '@trawler/shared';
 import { Eye, EyeOff, Star } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';

@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import type { HealthResponse } from '@devilray/shared';
+import type { HealthResponse } from '@trawler/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('health')

@@ -1,4 +1,4 @@
-import type { JobSource } from '@devilray/shared';
+import type { JobSource } from '@trawler/shared';
 
 /** One crawl queue per source so Playwright-backed sources can be throttled independently. */
 export function crawlQueueName(source: JobSource): string {

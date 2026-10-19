@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RawPosting, type Region } from '@devilray/shared';
+import { RawPosting, type Region } from '@trawler/shared';
 import type { Page } from 'playwright';
 import type { Env } from '../config/env';
 import { BrowserService } from './browser.service';

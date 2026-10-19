@@ -1,4 +1,4 @@
-import { SOURCE_LABEL } from '@devilray/shared';
+import { SOURCE_LABEL } from '@trawler/shared';
 import { Card } from '@/components/ui/card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';

@@ -1,4 +1,4 @@
-# devilray 작업 기록 (2026-10-14)
+# trawler 작업 기록 (2026-10-14)
 
 원티드/사람인 채용 공고 수집기. 하루에 Phase 0~6 전부 구현했고, 이 문서는 집에서 이어 보기 위한 정리본이다.
 실행 방법과 운영 명령은 [README.md](../README.md)에 있고, 여기는 **무엇을 왜 그렇게 만들었는지, 지금 어떤 상태인지, 다음에 뭘 보면 되는지**만 적는다.
@@ -23,7 +23,7 @@
 | 크롤 | 원티드: JSON API fetch / 사람인: Playwright | 어댑터 패턴 `crawler/source-adapter.ts` |
 | 알림 | Slack Incoming Webhook | `notifier/` (Notifier 인터페이스, 텔레그램은 미구현) |
 | 인프라 | Docker Desktop + docker-compose | Postgres/Redis만 컨테이너, 앱은 호스트에서 실행 |
-| 자동 시작 | Windows 작업 스케줄러 `devilray` | 로그온 +30초에 `scripts/start.cmd` |
+| 자동 시작 | Windows 작업 스케줄러 `trawler` | 로그온 +30초에 `scripts/start.cmd` |
 
 ## 2. Phase별 커밋
 
@@ -69,7 +69,7 @@
 
 ## 5. 지금 상태 (퇴근 시점)
 
-- **앱이 떠 있다.** 작업 스케줄러 `devilray`를 수동 실행해서 API(:3000)/웹(:3001)이 프로덕션 모드로 동작 중. 30분마다 수집한다.
+- **앱이 떠 있다.** 작업 스케줄러 `trawler`를 수동 실행해서 API(:3000)/웹(:3001)이 프로덕션 모드로 동작 중. 30분마다 수집한다.
 - **Slack 웹훅은 아직 없다.** `.env`에 `SLACK_WEBHOOK_URL`이 없어서 수집만 하고 알림은 건너뛴다(로그에 WARN).
 - **DB 데이터**: 프로필 1개(`default`, 키워드 `nestjs`, `node.js 백엔드`), 공고 44건(원티드 6, 사람인 38), 전부 ACTIVE. 테스트 중 생긴 데이터는 정리했다.
 - **재부팅하면** 로그온 +30초에 자동으로 뜬다. 로그는 `storage/logs/`.
@@ -77,8 +77,8 @@
 
 ## 6. 집에서 할 것 (제안)
 
-1. 브라우저로 `http://localhost:3001` 열어 보기. 안 떠 있으면 `Start-ScheduledTask -TaskName devilray`.
-2. Slack 앱 → Incoming Webhooks → URL을 `.env`에 넣고 `scripts\stop.cmd` → `Start-ScheduledTask -TaskName devilray`. 24시간 내 수집분이 한 번에 오고 이후엔 신규만.
+1. 브라우저로 `http://localhost:3001` 열어 보기. 안 떠 있으면 `Start-ScheduledTask -TaskName trawler`.
+2. Slack 앱 → Incoming Webhooks → URL을 `.env`에 넣고 `scripts\stop.cmd` → `Start-ScheduledTask -TaskName trawler`. 24시간 내 수집분이 한 번에 오고 이후엔 신규만.
 3. `/profiles`에서 키워드와 제목 필터 조정. 며칠 써 보면서 includeTitle 단어를 늘리거나 비우기.
 4. 수집이 너무 적으면 `.env`에 `WANTED_MAX_PAGES=5`, `SARAMIN_MAX_PAGES=3` 정도로.
 5. 뭔가 조용하면 `/runs`와 Bull Board(`localhost:3000/admin/queues`) 확인. 사이트가 바뀌면 3회 실패 후 Slack 경고가 온다(웹훅 설정 후).

@@ -1,7 +1,7 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { EnqueueResult, JobSource } from '@devilray/shared';
+import type { EnqueueResult, JobSource } from '@trawler/shared';
 import { Queue } from 'bullmq';
 import type { Env } from '../config/env';
 import {

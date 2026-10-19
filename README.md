@@ -1,4 +1,4 @@
-# devilray — 원티드/사람인 공고 수집기
+# trawler — 원티드/사람인 공고 수집기
 
 키워드 기반으로 채용 공고를 수집해 DB에 쌓고, 새 공고가 뜨면 슬랙/텔레그램으로 알림.
 
@@ -122,12 +122,12 @@ CRAWL_ON_BOOT=true             # 기동 직후 1회 실행 (개발용)
 ```powershell
 pnpm build                                                               # api dist + web .next
 powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1   # 로그온 +30초에 scripts\start.cmd 실행
-Start-ScheduledTask -TaskName devilray                                   # 지금 바로 띄우기
+Start-ScheduledTask -TaskName trawler                                   # 지금 바로 띄우기
 scripts\stop.cmd                                                         # 중지
 powershell -ExecutionPolicy Bypass -File scripts\uninstall-autostart.ps1
 ```
 - `start.cmd`는 Docker Desktop이 뜰 때까지 기다렸다가 `docker compose up -d` → 마이그레이션 → API(:3000)/웹(:3001)을 최소화된 창으로 띄웁니다. 로그는 `storage/logs/`.
-- 코드를 바꿨으면 `pnpm build` 후 `scripts\stop.cmd` → `Start-ScheduledTask -TaskName devilray`.
+- 코드를 바꿨으면 `pnpm build` 후 `scripts\stop.cmd` → `Start-ScheduledTask -TaskName trawler`.
 
 ### 안 만든 것 (필요해지면)
 - 텔레그램: `notifier/`에 `Notifier` 구현체 하나 추가하고 `notifier.module.ts`의 배열에 넣으면 끝.

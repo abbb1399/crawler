@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
-import { PostingListQuery, PostingPatch } from '@devilray/shared';
+import { PostingListQuery, PostingPatch } from '@trawler/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { PostingsService } from './postings.service';
 

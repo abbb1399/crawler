@@ -68,7 +68,7 @@ export class NotificationsService {
     for (const notifier of this.notifiers) {
       if (!notifier.enabled) continue;
       try {
-        await notifier.sendText(`⚠️ devilray: ${text}`);
+        await notifier.sendText(`⚠️ trawler: ${text}`);
         sent = true;
       } catch (err) {
         this.logger.error(`${notifier.channel} alert failed: ${(err as Error).message}`);

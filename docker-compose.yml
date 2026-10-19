@@ -1,25 +1,27 @@
+name: trawler
+
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: devilray-postgres
+    container_name: trawler-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: devilray
-      POSTGRES_PASSWORD: devilray
-      POSTGRES_DB: devilray
+      POSTGRES_USER: trawler
+      POSTGRES_PASSWORD: trawler
+      POSTGRES_DB: trawler
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U devilray -d devilray"]
+      test: ["CMD-SHELL", "pg_isready -U trawler -d trawler"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: devilray-redis
+    container_name: trawler-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:

@@ -10,7 +10,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { SearchProfileInput, SearchProfilePatch } from '@devilray/shared';
+import { SearchProfileInput, SearchProfilePatch } from '@trawler/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { PrismaService } from '../prisma/prisma.service';
 

@@ -1,4 +1,4 @@
-import { REGION_LABEL, SOURCE_LABEL } from '@devilray/shared';
+import { REGION_LABEL, SOURCE_LABEL } from '@trawler/shared';
 import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';

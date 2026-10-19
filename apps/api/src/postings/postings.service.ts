@@ -7,7 +7,7 @@ import type {
   PostingListQuery,
   PostingPatch,
   RawPosting,
-} from '@devilray/shared';
+} from '@trawler/shared';
 import type { Env } from '../config/env';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { CrawlSummary, JobSource, RawPosting } from '@devilray/shared';
+import type { CrawlSummary, JobSource, RawPosting } from '@trawler/shared';
 import { PostingsService } from '../postings/postings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SOURCE_ADAPTERS, type SourceAdapter } from './source-adapter';

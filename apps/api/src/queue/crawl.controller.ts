@@ -1,5 +1,5 @@
 import { BadRequestException, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { JobSource, type EnqueueResult, type ExpireResult, type Stats } from '@devilray/shared';
+import { JobSource, type EnqueueResult, type ExpireResult, type Stats } from '@trawler/shared';
 import { CrawlerService } from '../crawler/crawler.service';
 import { NotificationsService } from '../notifier/notifications.service';
 import { PostingsService } from '../postings/postings.service';

@@ -1,4 +1,4 @@
-import { JobSource, Region, REGION_LABEL, SOURCE_LABEL, type SearchProfile } from '@devilray/shared';
+import { JobSource, Region, REGION_LABEL, SOURCE_LABEL, type SearchProfile } from '@trawler/shared';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';

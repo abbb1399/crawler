@@ -3,8 +3,8 @@
 AWS Lightsail(서울, Ubuntu 24.04, 2GB) 한 대에 `docker-compose.prod.yml`로 전부 올린다.
 
 ```
-인터넷 ─► Caddy :443 (HTTPS 자동 + Basic Auth)
-            ├─ /admin/queues* ─► api:3000 (Bull Board)
+인터넷 ─► Caddy :443 (HTTPS 자동)
+            ├─ /admin/queues* ─► api:3000 (Bull Board, Basic Auth)
             └─ 그 외          ─► web:3001 ─► api:3000
 api ─► postgres, redis   (Caddy 외에는 포트를 열지 않음)
 ```

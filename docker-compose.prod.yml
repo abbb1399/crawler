@@ -74,7 +74,8 @@ services:
       BASIC_AUTH_USER: ${BASIC_AUTH_USER:?set BASIC_AUTH_USER in .env}
       BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:?set BASIC_AUTH_HASH in .env}
     volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Mount the directory, not the file: deploy.sh replaces the file, and a file bind mount keeps the old inode.
+      - ./deploy:/etc/caddy:ro
       - caddydata:/data
       - caddyconfig:/config
     depends_on:

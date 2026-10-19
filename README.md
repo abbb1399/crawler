@@ -135,4 +135,4 @@ powershell -ExecutionPolicy Bypass -File scripts\uninstall-autostart.ps1
 
 ## 서버 배포
 
-AWS Lightsail + Docker Compose + Caddy(HTTPS, Basic Auth). 구성과 재배포 방법은 [deploy/README.md](deploy/README.md).
+AWS Lightsail + Docker Compose + Caddy(HTTPS, Bull Board만 Basic Auth). 구성과 재배포 방법은 [deploy/README.md](deploy/README.md).

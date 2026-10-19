@@ -1,13 +1,12 @@
 # Only public entry point. HTTPS is automatic for SITE_ADDRESS (a domain, or <ip-with-dashes>.sslip.io).
-# The app has no auth of its own, so everything sits behind basic auth.
+# The dashboard is public; Bull Board can clean/retry/delete jobs, so it stays behind basic auth.
 {$SITE_ADDRESS} {
 	encode gzip
 
-	basic_auth {
-		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
-	}
-
 	handle /admin/queues* {
+		basic_auth {
+			{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+		}
 		reverse_proxy api:3000
 	}
 	handle {

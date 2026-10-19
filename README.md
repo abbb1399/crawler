@@ -132,3 +132,7 @@ powershell -ExecutionPolicy Bypass -File scripts\uninstall-autostart.ps1
 ### 안 만든 것 (필요해지면)
 - 텔레그램: `notifier/`에 `Notifier` 구현체 하나 추가하고 `notifier.module.ts`의 배열에 넣으면 끝.
 - 서버 배포용 Dockerfile: 로컬 전용이라 생략.
+
+## 서버 배포
+
+AWS Lightsail + Docker Compose + Caddy(HTTPS, Basic Auth). 구성과 재배포 방법은 [deploy/README.md](deploy/README.md).

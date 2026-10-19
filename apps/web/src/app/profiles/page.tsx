@@ -1,4 +1,4 @@
-import { SOURCE_LABEL } from '@devilray/shared';
+import { REGION_LABEL, SOURCE_LABEL } from '@devilray/shared';
 import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -84,6 +84,7 @@ export default async function ProfilesPage({
                     <Row label="키워드" items={p.keywords} />
                     <Row label="제목 포함" items={p.includeTitle} empty="(제한 없음)" />
                     <Row label="제목 제외" items={p.excludeTitle} empty="(없음)" />
+                    <Row label="지역" items={p.regions.map((r) => REGION_LABEL[r])} empty="(전국)" />
                   </dl>
                 </CardContent>
 

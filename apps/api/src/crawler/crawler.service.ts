@@ -3,7 +3,7 @@ import type { CrawlSummary, JobSource, RawPosting } from '@devilray/shared';
 import { PostingsService } from '../postings/postings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SOURCE_ADAPTERS, type SourceAdapter } from './source-adapter';
-import { matchesTitle } from './title-filter';
+import { matchesRegion, matchesTitle } from './title-filter';
 
 @Injectable()
 export class CrawlerService {
@@ -36,16 +36,18 @@ export class CrawlerService {
     const run = await this.prisma.crawlRun.create({ data: { source, profileId } });
     const started = Date.now();
     this.logger.log(
-      `run#${run.id} ${source} profile=${profile.name} keywords=${profile.keywords.join(',')}`,
+      `run#${run.id} ${source} profile=${profile.name} keywords=${profile.keywords.join(',')} regions=${profile.regions.join(',') || 'all'}`,
     );
 
     try {
       const collected: RawPosting[] = [];
       for (const keyword of profile.keywords) {
-        collected.push(...(await adapter.fetch(keyword)));
+        collected.push(...(await adapter.fetch(keyword, { regions: profile.regions })));
       }
-      const relevant = collected.filter((p) =>
-        matchesTitle(p.title, profile.includeTitle, profile.excludeTitle),
+      const relevant = collected.filter(
+        (p) =>
+          matchesTitle(p.title, profile.includeTitle, profile.excludeTitle) &&
+          matchesRegion(p.location, profile.regions),
       );
       const result = await this.postings.upsertMany(relevant);
 

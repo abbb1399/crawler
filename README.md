@@ -76,6 +76,7 @@ CRAWL_ON_BOOT=true             # 기동 직후 1회 실행 (개발용)
 - 알림 대상: 최근 `NOTIFY_LOOKBACK_HOURS`(기본 24h) 안에 처음 본 공고 중 아직 성공 로그가 없는 것. `NotificationLog(postingId, channel, kind)` unique라 같은 공고가 두 번 가지 않고, 웹훅 실패는 다음 실행에서 재시도됩니다.
 - Slack 메시지는 10건씩 묶어 1개 메시지로 보냅니다.
 - 제목 필터: 사이트 검색이 느슨해서 `SearchProfile.includeTitle`(하나라도 포함) / `excludeTitle`(포함 시 제외)로 걸러서 저장합니다. 둘 다 비우면 전부 저장. 기본 시드는 include = node, nest, backend, 백엔드, 서버.
+- 지역: `SearchProfile.regions`(서울/경기/인천, 비우면 전국)로 사이트 검색 자체를 좁힙니다(원티드 `locations=seoul.all`, 사람인 `loc_mcd=101000`). 사람인 지역 필터가 느슨해서 위치 문자열로 한 번 더 거릅니다. 기본 시드는 서울·경기.
 
 ## 큐 (BullMQ)
 

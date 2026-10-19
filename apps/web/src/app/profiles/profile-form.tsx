@@ -1,4 +1,4 @@
-import { JobSource, SOURCE_LABEL, type SearchProfile } from '@devilray/shared';
+import { JobSource, Region, REGION_LABEL, SOURCE_LABEL, type SearchProfile } from '@devilray/shared';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ export function ProfileForm({
   error?: string;
 }) {
   const sources = new Set(profile?.sources ?? JobSource.options);
+  const regions = new Set<Region>(profile?.regions ?? ['SEOUL', 'GYEONGGI']);
   return (
     <form action={action} className="max-w-xl">
       {profile && <input type="hidden" name="id" value={profile.id} />}
@@ -85,6 +86,19 @@ export function ProfileForm({
               </Label>
             ))}
           </div>
+        </Field>
+
+        <Field>
+          <FieldLabel>지역</FieldLabel>
+          <div className="flex gap-4">
+            {Region.options.map((r) => (
+              <Label key={r} className="gap-1.5 font-normal">
+                <Checkbox name="regions" value={r} defaultChecked={regions.has(r)} />
+                {REGION_LABEL[r]}
+              </Label>
+            ))}
+          </div>
+          <FieldDescription>체크한 지역만 검색. 모두 비우면 전국.</FieldDescription>
         </Field>
 
         <Field orientation="horizontal">

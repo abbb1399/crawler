@@ -1,6 +1,6 @@
 'use server';
 
-import { JobSource, SearchProfileInput, SearchProfilePatch } from '@devilray/shared';
+import { JobSource, Region, SearchProfileInput, SearchProfilePatch } from '@devilray/shared';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { api, ApiError } from './api';
@@ -58,6 +58,7 @@ function profileFromForm(formData: FormData) {
     includeTitle: splitTerms(formData.get('includeTitle')),
     excludeTitle: splitTerms(formData.get('excludeTitle')),
     sources: formData.getAll('sources').map(String).filter((s) => JobSource.safeParse(s).success),
+    regions: formData.getAll('regions').map(String).filter((s) => Region.safeParse(s).success),
     enabled: formData.get('enabled') === 'on',
   };
 }

@@ -1,8 +1,10 @@
-import type { JobSource, RawPosting } from '@devilray/shared';
+import type { JobSource, RawPosting, Region } from '@devilray/shared';
 
 export interface FetchOptions {
   /** Upper bound on result pages to walk for this keyword. */
   maxPages?: number;
+  /** Restrict the site search to these regions. Empty/absent = nationwide. */
+  regions?: Region[];
 }
 
 /**

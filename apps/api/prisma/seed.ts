@@ -27,15 +27,16 @@ const DEFAULT_PROFILE = {
     'spring', 'jsp', 'php', '.net', 'c#', 'egov', '전자정부', 'flutter', 'unity',
   ],
   sources: ['WANTED', 'SARAMIN'] as const,
+  regions: ['SEOUL', 'GYEONGGI'] as const,
 };
 
 async function main() {
-  const { name, sources, ...filters } = DEFAULT_PROFILE;
+  const { name, sources, regions, ...filters } = DEFAULT_PROFILE;
   const profile = await prisma.searchProfile.upsert({
     where: { name },
-    create: { name, sources: [...sources], ...filters },
+    create: { name, sources: [...sources], regions: [...regions], ...filters },
     // Re-running the seed re-applies the defaults to this profile only.
-    update: { ...filters },
+    update: { regions: [...regions], ...filters },
   });
   console.log(
     `seeded SearchProfile #${profile.id} "${profile.name}" keywords=${profile.keywords.join(', ')} include=${profile.includeTitle.join(', ')}`,

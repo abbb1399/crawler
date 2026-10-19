@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RawPosting } from '@devilray/shared';
+import { RawPosting, type Region } from '@devilray/shared';
 import { z } from 'zod';
 import type { Env } from '../config/env';
 import type { FetchOptions, SourceAdapter } from './source-adapter';
@@ -10,6 +10,7 @@ import type { FetchOptions, SourceAdapter } from './source-adapter';
  *   GET https://www.wanted.co.kr/api/v4/search?query=<kw>&country=kr&limit=<n>&offset=<n>
  * Returns `data.jobs[]`, newest first, with limit/offset pagination.
  * (`/api/v4/jobs?query=` only matches titles and returned far fewer results.)
+ * Region filter: repeat `locations=<slug>.all` (verified 2026-10-19).
  */
 const WantedJob = z.looseObject({
   id: z.number(),
@@ -25,6 +26,11 @@ const WantedSearchResponse = z.object({
 });
 
 const PAGE_SIZE = 20;
+const LOCATION_SLUG: Record<Region, string> = {
+  SEOUL: 'seoul.all',
+  GYEONGGI: 'gyeonggi.all',
+  INCHEON: 'incheon.all',
+};
 const BASE_URL = 'https://www.wanted.co.kr';
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
@@ -44,7 +50,7 @@ export class WantedAdapter implements SourceAdapter {
     const out: RawPosting[] = [];
 
     for (let page = 0; page < maxPages; page++) {
-      const jobs = await this.fetchPage(keyword, page * PAGE_SIZE);
+      const jobs = await this.fetchPage(keyword, page * PAGE_SIZE, opts.regions ?? []);
       for (const job of jobs) {
         if (job.status && job.status !== 'active') continue;
         out.push(this.toRawPosting(job));
@@ -57,12 +63,13 @@ export class WantedAdapter implements SourceAdapter {
     return out;
   }
 
-  private async fetchPage(keyword: string, offset: number) {
+  private async fetchPage(keyword: string, offset: number, regions: Region[]) {
     const url = new URL('/api/v4/search', BASE_URL);
     url.searchParams.set('query', keyword);
     url.searchParams.set('country', 'kr');
     url.searchParams.set('limit', String(PAGE_SIZE));
     url.searchParams.set('offset', String(offset));
+    for (const r of regions) url.searchParams.append('locations', LOCATION_SLUG[r]);
 
     const res = await globalThis.fetch(url, {
       headers: {

@@ -9,6 +9,17 @@ export const SOURCE_LABEL: Record<JobSource, string> = {
   SARAMIN: '사람인',
 };
 
+/** Search regions a profile can be limited to. Empty list on a profile = nationwide. */
+export const Region = z.enum(['SEOUL', 'GYEONGGI', 'INCHEON']);
+export type Region = z.infer<typeof Region>;
+
+/** Also the prefix the sites put in a posting's location ("서울 강남구", "경기전체, 서울전체"). */
+export const REGION_LABEL: Record<Region, string> = {
+  SEOUL: '서울',
+  GYEONGGI: '경기',
+  INCHEON: '인천',
+};
+
 /** Shape returned by GET /health. */
 export const HealthResponse = z.object({
   status: z.literal('ok'),
@@ -117,6 +128,7 @@ export const SearchProfile = z.object({
   includeTitle: z.array(z.string()),
   excludeTitle: z.array(z.string()),
   sources: z.array(JobSource),
+  regions: z.array(Region),
   enabled: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -131,12 +143,14 @@ const SearchProfileFields = z.object({
   includeTitle: termList,
   excludeTitle: termList,
   sources: z.array(JobSource).min(1),
+  regions: z.array(Region),
   enabled: z.boolean(),
 });
 
 export const SearchProfileInput = SearchProfileFields.extend({
   includeTitle: termList.default([]),
   excludeTitle: termList.default([]),
+  regions: z.array(Region).default([]),
   enabled: z.boolean().default(true),
 });
 export type SearchProfileInput = z.infer<typeof SearchProfileInput>;

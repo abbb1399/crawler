@@ -12,6 +12,12 @@ enum JobSource {
   SARAMIN
 }
 
+enum Region {
+  SEOUL
+  GYEONGGI
+  INCHEON
+}
+
 enum PostingStatus {
   ACTIVE
   EXPIRED
@@ -43,6 +49,8 @@ model SearchProfile {
   /// Title containing any of these is dropped.
   excludeTitle String[] @default([])
   sources   JobSource[]
+  /// Limit the site search to these regions. Empty = nationwide.
+  regions   Region[]    @default([])
   enabled   Boolean     @default(true)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RawPosting } from '@devilray/shared';
+import { RawPosting, type Region } from '@devilray/shared';
 import type { Page } from 'playwright';
 import type { Env } from '../config/env';
 import { BrowserService } from './browser.service';
@@ -12,9 +12,16 @@ import type { FetchOptions, SourceAdapter } from './source-adapter';
  *     &recruitSort=reg_dt&recruitPageCount=40&recruitPage=<n>
  * Each result is `.item_recruit[value=<rec_idx>]` with `.job_tit a`, `.corp_name a`,
  * `.job_condition span` (first = location) and `.job_date .date`.
+ * Region filter: `loc_mcd=101000,102000` (verified 2026-10-19). It is loose (other regions leak in),
+ * so CrawlerService also filters on the location text.
  */
 const BASE_URL = 'https://www.saramin.co.kr';
 const PAGE_SIZE = 40;
+const LOC_MCD: Record<Region, string> = {
+  SEOUL: '101000',
+  GYEONGGI: '102000',
+  INCHEON: '108000',
+};
 
 /** Shape extracted inside the page; keep it JSON-serializable. */
 interface SaraminItem {
@@ -49,7 +56,7 @@ export class SaraminAdapter implements SourceAdapter {
       const out: RawPosting[] = [];
       try {
         for (let n = 1; n <= maxPages; n++) {
-          const items = await this.fetchPage(page, keyword, n);
+          const items = await this.fetchPage(page, keyword, n, opts.regions ?? []);
           for (const item of items) out.push(this.toRawPosting(item));
           if (items.length < PAGE_SIZE) break;
           if (n < maxPages) await sleep(2000 + Math.random() * 2000);
@@ -62,13 +69,14 @@ export class SaraminAdapter implements SourceAdapter {
     });
   }
 
-  private async fetchPage(page: Page, keyword: string, pageNo: number): Promise<SaraminItem[]> {
+  private async fetchPage(page: Page, keyword: string, pageNo: number, regions: Region[]): Promise<SaraminItem[]> {
     const url = new URL('/zf_user/search/recruit', BASE_URL);
     url.searchParams.set('searchType', 'search');
     url.searchParams.set('searchword', keyword);
     url.searchParams.set('recruitSort', 'reg_dt');
     url.searchParams.set('recruitPageCount', String(PAGE_SIZE));
     url.searchParams.set('recruitPage', String(pageNo));
+    if (regions.length) url.searchParams.set('loc_mcd', regions.map((r) => LOC_MCD[r]).join(','));
 
     const res = await page.goto(url.toString(), { waitUntil: 'domcontentloaded', timeout: 30_000 });
     const status = res?.status() ?? 0;

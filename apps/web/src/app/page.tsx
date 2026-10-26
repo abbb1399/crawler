@@ -150,15 +150,15 @@ function PostingRow({ p }: { p: Posting }) {
             href={p.url}
             target="_blank"
             rel="noreferrer"
-            className="truncate font-medium hover:underline visited:text-muted-foreground"
+            className="min-w-0 truncate font-medium hover:underline visited:text-muted-foreground"
           >
             {p.title}
           </a>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <Badge variant="secondary">{SOURCE_LABEL[p.source]}</Badge>
-          <span className="text-foreground">{p.company}</span>
-          {p.location && <span>{p.location}</span>}
+          <span className="max-w-full truncate text-foreground">{p.company}</span>
+          {p.location && <span className="max-w-full truncate">{p.location}</span>}
           <span className={due.urgent ? 'font-medium text-destructive' : ''}>마감 {due.label}</span>
           <span>수집 {fmtDateTime(p.firstSeenAt)}</span>
           {p.status === 'EXPIRED' && <Badge variant="outline">만료</Badge>}

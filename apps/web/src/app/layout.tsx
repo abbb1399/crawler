@@ -24,14 +24,15 @@ const NAV = [
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col overflow-x-hidden">
         <header className="border-b bg-card">
-          <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-2">
+          {/* Wraps on phones: logo + nav on one line, the Bull Board link drops to the next. */}
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2">
             <Link href="/" className="flex items-center gap-1.5 font-semibold tracking-tight">
               <TrawlerMark className="size-5 text-teal-700 dark:text-teal-400" />
               trawler
             </Link>
-            <nav className="flex gap-1">
+            <nav className="flex flex-wrap gap-1">
               {NAV.map((n) => (
                 <Button key={n.href} asChild variant="ghost" size="sm" className="text-muted-foreground">
                   <Link href={n.href}>{n.label}</Link>

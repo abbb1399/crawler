@@ -1,4 +1,5 @@
 import { JobSource, Region, REGION_LABEL, SOURCE_LABEL, type SearchProfile } from '@trawler/shared';
+import { SourceIcon } from '@/components/source-icon';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,7 @@ export function ProfileForm({
             {JobSource.options.map((s) => (
               <Label key={s} className="gap-1.5 font-normal">
                 <Checkbox name="sources" value={s} defaultChecked={sources.has(s)} />
+                <SourceIcon source={s} />
                 {SOURCE_LABEL[s]}
               </Label>
             ))}

@@ -1,7 +1,8 @@
-import { REGION_LABEL, SOURCE_LABEL } from '@trawler/shared';
+import { REGION_LABEL } from '@trawler/shared';
 import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SourceIcon } from '@/components/source-icon';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,11 +63,9 @@ export default async function ProfilesPage({
                   <CardTitle>
                     {p.name} <span className="text-xs font-normal text-muted-foreground">#{p.id}</span>
                   </CardTitle>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     {p.sources.map((s) => (
-                      <Badge key={s} variant="outline">
-                        {SOURCE_LABEL[s]}
-                      </Badge>
+                      <SourceIcon key={s} source={s} className="size-5" />
                     ))}
                     {!p.enabled && <Badge variant="secondary">비활성</Badge>}
                   </div>

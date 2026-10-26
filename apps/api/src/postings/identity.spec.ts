@@ -18,7 +18,28 @@ describe('normalizeForFingerprint', () => {
     expect(normalizeForFingerprint('주식회사 모던랩스', 'Node.js 백엔드 개발자')).toBe('모던랩스|nodejs백엔드개발자');
     expect(normalizeForFingerprint('(주)모던랩스', 'NODE.JS 백엔드 개발자')).toBe('모던랩스|nodejs백엔드개발자');
     expect(normalizeForFingerprint('㈜모던랩스', 'node.js  백엔드-개발자!')).toBe('모던랩스|nodejs백엔드개발자');
-    expect(normalizeForFingerprint('(유)모던랩스', '백엔드 개발자 3년')).toBe('모던랩스|백엔드개발자3년');
+    expect(normalizeForFingerprint('(유)모던랩스', '백엔드 개발자 3년')).toBe('모던랩스|백엔드개발자');
+  });
+
+  it('ignores bracketed qualifiers and hiring boilerplate in titles', () => {
+    const base = normalizeForFingerprint('A사', '백엔드 개발자');
+    expect(base).toBe('a사|백엔드개발자');
+    for (const title of [
+      '백엔드 개발자 (신입)',
+      '[판교] 백엔드 개발자 경력 3년 이상',
+      '백엔드 개발자 채용',
+      '【급구】 백엔드 개발자 5년차 정규직',
+      '신입/경력 백엔드 개발자 모집 공고',
+      '백엔드 개발자 (경력 3년↑) [계약직]',
+    ]) {
+      expect(normalizeForFingerprint('A사', title), title).toBe(base);
+    }
+  });
+
+  it('still separates genuinely different titles and keeps digits that are not years', () => {
+    expect(normalizeForFingerprint('A사', '3D 엔지니어')).toBe('a사|3d엔지니어');
+    expect(normalizeForFingerprint('A사', '백엔드 개발자 (서울)')).toBe(normalizeForFingerprint('A사', '백엔드 개발자 (판교)'));
+    expect(normalizeForFingerprint('A사', '백엔드 개발자')).not.toBe(normalizeForFingerprint('A사', '프론트엔드 개발자'));
   });
 });
 

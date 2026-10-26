@@ -75,23 +75,27 @@ export class PostingsService {
       const toInsert = unique.filter((p) => !existingByKey.has(key(p.source, p.externalId)));
       const rows = toInsert.map((p) => ({ ...toRow(p), lastSeenAt: now }));
 
-      // Repost lookup: earliest prior posting per fingerprint inside the window.
-      const priorByFp = new Map<string, number>();
+      // Repost lookup: earliest prior posting per fingerprint inside the window. A repost inherits
+      // the original's hidden flag, so hiding a posting also hides its future re-registrations.
+      const priorByFp = new Map<string, { id: number; hidden: boolean }>();
       if (rows.length) {
         const prior = await tx.jobPosting.findMany({
           where: {
             fingerprint: { in: [...new Set(rows.map((r) => r.fingerprint))] },
             firstSeenAt: { gte: repostSince },
           },
-          select: { id: true, fingerprint: true },
+          select: { id: true, fingerprint: true, hidden: true },
           orderBy: { id: 'asc' },
         });
-        for (const p of prior) if (!priorByFp.has(p.fingerprint)) priorByFp.set(p.fingerprint, p.id);
+        for (const p of prior) if (!priorByFp.has(p.fingerprint)) priorByFp.set(p.fingerprint, p);
       }
 
       const inserted = rows.length
         ? await tx.jobPosting.createManyAndReturn({
-            data: rows.map((r) => ({ ...r, repostOfId: priorByFp.get(r.fingerprint) ?? null })),
+            data: rows.map((r) => {
+              const prior = priorByFp.get(r.fingerprint);
+              return { ...r, repostOfId: prior?.id ?? null, hidden: prior?.hidden ?? false };
+            }),
             select: { id: true, repostOfId: true },
           })
         : [];
@@ -181,10 +185,24 @@ export class PostingsService {
     };
   }
 
+  /**
+   * `hidden` applies to the whole repost family (the original plus every posting flagged as its
+   * repost), whichever member was clicked; `starred` stays on the single row.
+   */
   async patch(id: number, patch: PostingPatch) {
-    const exists = await this.prisma.jobPosting.findUnique({ where: { id }, select: { id: true } });
+    const exists = await this.prisma.jobPosting.findUnique({ where: { id }, select: { id: true, repostOfId: true } });
     if (!exists) throw new NotFoundException(`posting ${id} not found`);
-    const row = await this.prisma.jobPosting.update({ where: { id }, data: patch, select: LIST_SELECT });
+    const row = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.jobPosting.update({ where: { id }, data: patch, select: LIST_SELECT });
+      if (patch.hidden !== undefined) {
+        const root = exists.repostOfId ?? id;
+        await tx.jobPosting.updateMany({
+          where: { OR: [{ id: root }, { repostOfId: root }] },
+          data: { hidden: patch.hidden },
+        });
+      }
+      return updated;
+    });
     return serialize(row);
   }
 }

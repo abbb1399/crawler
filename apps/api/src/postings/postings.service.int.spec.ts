@@ -102,6 +102,42 @@ describe('upsertMany', () => {
   });
 });
 
+describe('hidden follows the repost family', () => {
+  it('a repost of a hidden posting is inserted hidden', async () => {
+    const [orig] = (await svc.upsertMany([rawPosting({ externalId: 'w1' })])).insertedIds;
+    await svc.patch(orig, { hidden: true });
+
+    const r = await svc.upsertMany([rawPosting({ externalId: 'w2', title: 'Node.js 백엔드 개발자 (경력 3년 이상)', url: 'https://example.com/w2' })]);
+    expect(r.repostIds).toHaveLength(1);
+    const repost = await prisma.jobPosting.findUniqueOrThrow({ where: { id: r.insertedIds[0] } });
+    expect(repost).toMatchObject({ repostOfId: orig, hidden: true });
+  });
+
+  it('toggling hidden on any member applies to the original and all reposts; starred does not spread', async () => {
+    const [orig] = (await svc.upsertMany([rawPosting({ externalId: 'w1' })])).insertedIds;
+    const [r2] = (await svc.upsertMany([rawPosting({ externalId: 'w2' })])).insertedIds;
+    const [r3] = (await svc.upsertMany([rawPosting({ source: 'SARAMIN', externalId: 's3' })])).insertedIds;
+    const family = () => prisma.jobPosting.findMany({ where: { id: { in: [orig, r2, r3] } }, orderBy: { id: 'asc' } });
+    expect((await family()).map((p) => p.repostOfId)).toEqual([null, orig, orig]);
+
+    await svc.patch(r2, { hidden: true });
+    expect((await family()).map((p) => p.hidden)).toEqual([true, true, true]);
+
+    await svc.patch(r3, { hidden: false });
+    expect((await family()).map((p) => p.hidden)).toEqual([false, false, false]);
+
+    await svc.patch(r2, { starred: true });
+    expect((await family()).map((p) => p.starred)).toEqual([false, true, false]);
+  });
+
+  it('does not touch unrelated postings', async () => {
+    const [a] = (await svc.upsertMany([rawPosting({ externalId: 'a' })])).insertedIds;
+    const [b] = (await svc.upsertMany([rawPosting({ externalId: 'b', title: '전혀 다른 공고' })])).insertedIds;
+    await svc.patch(a, { hidden: true });
+    expect((await prisma.jobPosting.findUniqueOrThrow({ where: { id: b } })).hidden).toBe(false);
+  });
+});
+
 describe('expireStale', () => {
   const now = new Date('2026-10-26T03:00:00Z');
 

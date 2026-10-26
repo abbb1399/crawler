@@ -25,13 +25,26 @@ export function contentHash(p: RawPosting): string {
     .digest('hex');
 }
 
-/** Must stay in sync with the SQL backfill in the phase6 migration. */
+/**
+ * Company: drop corporate suffixes. Title: drop bracketed qualifiers ("(신입)", "[판교]") and hiring
+ * boilerplate ("경력 3년 이상", "채용", "정규직") so a re-registered posting with a slightly reworded
+ * title still matches. Then lower-case and keep only letters/digits/hangul.
+ *
+ * Must stay in sync with the SQL backfill in prisma/migrations/*_loosen_title_fingerprint —
+ * identity.int.spec.ts runs both over the same samples. Note the one syntax difference: JS needs
+ * `[^\]]` where POSIX writes `[^]]`.
+ */
 export function normalizeForFingerprint(company: string, title: string): string {
   const c = company
     .replace(/주식회사|㈜|\(주\)|\(유\)/g, '')
     .toLowerCase()
     .replace(/[^0-9a-z가-힣]/g, '');
-  const t = title.toLowerCase().replace(/[^0-9a-z가-힣]/g, '');
+  const t = title
+    .toLowerCase()
+    .replace(/\([^)]*\)|\[[^\]]*\]|【[^】]*】/g, '')
+    .replace(/[0-9]+\s*년\s*(이상|이하|차)?/g, '')
+    .replace(/신입|경력|채용|모집|급구|정규직|계약직|인턴|공고/g, '')
+    .replace(/[^0-9a-z가-힣]/g, '');
   return `${c}|${t}`;
 }
 

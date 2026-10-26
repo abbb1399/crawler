@@ -1,10 +1,14 @@
 import { BadRequestException, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JobSource, type EnqueueResult, type ExpireResult, type Stats } from '@trawler/shared';
 import { CrawlerService } from '../crawler/crawler.service';
 import { NotificationsService } from '../notifier/notifications.service';
 import { PostingsService } from '../postings/postings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from './queue.service';
+
+/** Crawls and maintenance passes are expensive (Playwright, full-table updates): 10/min on top of the global limit. */
+const EXPENSIVE = { default: { limit: 10, ttl: 60_000 } };
 
 @Controller()
 export class CrawlController {
@@ -18,6 +22,7 @@ export class CrawlController {
 
   /** Enqueue a crawl: POST /crawl/wanted?profileId=1 → { queue, jobId } */
   @Post('crawl/:source')
+  @Throttle(EXPENSIVE)
   enqueue(@Param('source') sourceParam: string, @Query('profileId') profileIdParam?: string) {
     const { source, profileId } = parse(sourceParam, profileIdParam);
     if (!this.queues.hasQueue(source)) {
@@ -28,6 +33,7 @@ export class CrawlController {
 
   /** Enqueue every source of one profile: POST /crawl?profileId=1 */
   @Post('crawl')
+  @Throttle(EXPENSIVE)
   async enqueueAll(@Query('profileId') profileIdParam?: string) {
     const profileId = parseProfileId(profileIdParam);
     const profile = await this.prisma.searchProfile.findUnique({ where: { id: profileId } });
@@ -43,6 +49,7 @@ export class CrawlController {
 
   /** Run inline and wait for the result. Debugging aid; bypasses the queue. */
   @Post('crawl/:source/sync')
+  @Throttle(EXPENSIVE)
   async runSync(@Param('source') sourceParam: string, @Query('profileId') profileIdParam?: string) {
     const { source, profileId } = parse(sourceParam, profileIdParam);
     const summary = await this.crawler.run(source, profileId);
@@ -52,18 +59,21 @@ export class CrawlController {
 
   /** Expiry pass on demand (the nightly cron does the same). */
   @Post('maintenance/expire')
+  @Throttle(EXPENSIVE)
   expire(): Promise<ExpireResult> {
     return this.postings.expireStale();
   }
 
   /** Re-dispatch anything still pending (normally the notify queue does this after a crawl). */
   @Post('maintenance/notify')
+  @Throttle(EXPENSIVE)
   notify() {
     return this.notifications.dispatchPending();
   }
 
   /** Sends a test alert through every enabled channel. */
   @Post('maintenance/test-alert')
+  @Throttle(EXPENSIVE)
   async testAlert() {
     const sent = await this.notifications.alert(`test:${Date.now()}`, '테스트 경고입니다. 알림 채널이 동작합니다.');
     return { sent, channels: this.notifications.enabledChannels() };

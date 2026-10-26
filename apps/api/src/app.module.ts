@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { validateEnv } from './config/env';
 import { CrawlerModule } from './crawler/crawler.module';
 import { HealthController } from './health/health.controller';
@@ -19,6 +21,10 @@ import { QueueModule } from './queue/queue.module';
       envFilePath: ['.env', '../../.env'],
       validate: validateEnv,
     }),
+    // Rate limit. The dashboard server is the only client (one IP), so these limits are shared by
+    // everyone using the public dashboard — deliberate: this is a single-user app, and the point is
+    // to keep an anonymous visitor from hammering the crawl/maintenance endpoints.
+    ThrottlerModule.forRoot({ throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }] }),
     PrismaModule,
     PostingsModule,
     ProfilesModule,
@@ -27,5 +33,6 @@ import { QueueModule } from './queue/queue.module';
     QueueModule.register(),
   ],
   controllers: [HealthController],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Query } from '@nestjs/common';
 import { PostingListQuery, PostingPatch } from '@trawler/shared';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { PostingsService } from './postings.service';
@@ -7,7 +7,7 @@ import { PostingsService } from './postings.service';
 export class PostingsController {
   constructor(private readonly postings: PostingsService) {}
 
-  /** GET /postings?source=&status=&q=&unseen=true&starred=true&page=&limit= */
+  /** GET /postings?source=&status=&q=&hidden=true&starred=true&page=&limit= */
   @Get()
   list(@Query(new ZodValidationPipe(PostingListQuery)) query: PostingListQuery) {
     return this.postings.list(query);
@@ -19,10 +19,5 @@ export class PostingsController {
     @Body(new ZodValidationPipe(PostingPatch)) body: PostingPatch,
   ) {
     return this.postings.patch(id, body);
-  }
-
-  @Post('mark-all-seen')
-  async markAllSeen() {
-    return { updated: await this.postings.markAllSeen() };
   }
 }

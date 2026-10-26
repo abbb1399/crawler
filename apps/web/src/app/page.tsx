@@ -20,19 +20,19 @@ import {
 } from '@/components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
-import { markAllSeen, toggleSeen, toggleStar } from '@/lib/actions';
+import { toggleHidden, toggleStar } from '@/lib/actions';
 import { fmtDateTime, fmtDue } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
-type Search = { source?: string; q?: string; unseen?: string; starred?: string; expired?: string; page?: string };
+type Search = { source?: string; q?: string; hidden?: string; starred?: string; expired?: string; page?: string };
 
 export default async function PostingsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const filters = {
     source: JobSource.safeParse(sp.source).success ? sp.source : undefined,
     q: sp.q || undefined,
-    unseen: sp.unseen === '1' ? 'true' : undefined,
+    hidden: sp.hidden === '1' ? 'true' : undefined,
     starred: sp.starred === '1' ? 'true' : undefined,
     status: sp.expired === '1' ? 'all' : undefined,
   };
@@ -42,7 +42,7 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
     api.postings({ ...filters, page: String(page), limit: '30' }),
   ]);
 
-  // e.g. the last page emptied out after "읽음" under the 안 읽음만 filter
+  // e.g. the last page emptied out after hiding its last posting
   if (list.items.length === 0 && page > list.pageCount) redirect(pageHref(sp, list.pageCount));
 
   return (
@@ -52,8 +52,8 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
           <h1 className="text-xl font-semibold">공고</h1>
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
             <span>
-              활성 {stats.postings.active.toLocaleString()} / 전체 {stats.postings.total.toLocaleString()} · 안 읽음{' '}
-              {stats.postings.unseen} · 별표 {stats.postings.starred}
+              활성 {stats.postings.active.toLocaleString()} / 전체 {stats.postings.total.toLocaleString()} · 숨김{' '}
+              {stats.postings.hidden} · 별표 {stats.postings.starred}
             </span>
             {stats.postings.bySource.map((s) => (
               <Badge key={s.source} variant="outline">
@@ -63,13 +63,6 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
             <span>마지막 수집 {fmtDateTime(stats.lastRunAt)}</span>
           </p>
         </div>
-        {stats.postings.unseen > 0 && (
-          <form action={markAllSeen}>
-            <Button variant="outline" size="sm">
-              모두 읽음 처리
-            </Button>
-          </form>
-        )}
       </section>
 
       <form className="flex flex-wrap items-center gap-3 text-sm" method="get">
@@ -87,7 +80,7 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
           </SelectContent>
         </Select>
         <Label className="gap-1.5">
-          <Checkbox name="unseen" value="1" defaultChecked={sp.unseen === '1'} /> 안 읽음만
+          <Checkbox name="hidden" value="1" defaultChecked={sp.hidden === '1'} /> 숨김만
         </Label>
         <Label className="gap-1.5">
           <Checkbox name="starred" value="1" defaultChecked={sp.starred === '1'} /> 별표만
@@ -96,7 +89,7 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
           <Checkbox name="expired" value="1" defaultChecked={sp.expired === '1'} /> 만료 포함
         </Label>
         <Button size="sm">적용</Button>
-        {(sp.q || sp.source || sp.unseen || sp.starred || sp.expired) && (
+        {(sp.q || sp.source || sp.hidden || sp.starred || sp.expired) && (
           <Button asChild variant="link" size="sm" className="text-muted-foreground">
             <Link href="/">초기화</Link>
           </Button>
@@ -162,7 +155,7 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
 function PostingRow({ p }: { p: Posting }) {
   const due = fmtDue(p.dueDate);
   return (
-    <li className={`flex items-start gap-3 px-4 py-3 ${p.seen ? 'opacity-70' : ''}`}>
+    <li className="flex items-start gap-3 px-4 py-3">
       <form action={toggleStar}>
         <input type="hidden" name="id" value={p.id} />
         <input type="hidden" name="starred" value={String(p.starred)} />
@@ -177,8 +170,13 @@ function PostingRow({ p }: { p: Posting }) {
       </form>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          {!p.seen && <span className="size-2 shrink-0 rounded-full bg-primary" title="안 읽음" />}
-          <a href={p.url} target="_blank" rel="noreferrer" className="truncate font-medium hover:underline">
+          {/* Visited links dim via the browser's own history; :visited only allows colour changes. */}
+          <a
+            href={p.url}
+            target="_blank"
+            rel="noreferrer"
+            className="truncate font-medium hover:underline visited:text-muted-foreground"
+          >
             {p.title}
           </a>
         </div>
@@ -196,12 +194,12 @@ function PostingRow({ p }: { p: Posting }) {
           )}
         </div>
       </div>
-      <form action={toggleSeen}>
+      <form action={toggleHidden}>
         <input type="hidden" name="id" value={p.id} />
-        <input type="hidden" name="seen" value={String(p.seen)} />
+        <input type="hidden" name="hidden" value={String(p.hidden)} />
         <Button variant="outline" size="xs">
-          {p.seen ? <EyeOff data-icon="inline-start" /> : <Eye data-icon="inline-start" />}
-          {p.seen ? '안 읽음' : '읽음'}
+          {p.hidden ? <Eye data-icon="inline-start" /> : <EyeOff data-icon="inline-start" />}
+          {p.hidden ? '숨김 해제' : '숨김'}
         </Button>
       </form>
     </li>

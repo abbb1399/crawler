@@ -20,25 +20,10 @@ export async function toggleStar(formData: FormData) {
   revalidatePath('/');
 }
 
-export async function toggleSeen(formData: FormData) {
+export async function toggleHidden(formData: FormData) {
   const id = num(formData.get('id'));
-  const seen = formData.get('seen') === 'true';
-  await api.patchPosting(id, { seen: !seen });
-  revalidatePath('/');
-}
-
-/** Marks a posting seen when its link is opened; errors are swallowed so navigation never breaks. */
-export async function markSeen(id: number) {
-  try {
-    await api.patchPosting(id, { seen: true });
-    revalidatePath('/');
-  } catch {
-    /* ignore */
-  }
-}
-
-export async function markAllSeen() {
-  await api.markAllSeen();
+  const hidden = formData.get('hidden') === 'true';
+  await api.patchPosting(id, { hidden: !hidden });
   revalidatePath('/');
 }
 

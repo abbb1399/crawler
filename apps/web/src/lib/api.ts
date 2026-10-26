@@ -50,7 +50,6 @@ export const api = {
   },
   patchPosting: (id: number, patch: PostingPatch) =>
     call<Posting>(`/postings/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
-  markAllSeen: () => call<{ updated: number }>('/postings/mark-all-seen', { method: 'POST' }),
 
   profiles: () => call<SearchProfile[]>('/profiles'),
   profile: (id: number) => call<SearchProfile>(`/profiles/${id}`),

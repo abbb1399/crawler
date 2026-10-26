@@ -30,7 +30,7 @@ const LIST_SELECT = {
   url: true,
   dueDate: true,
   status: true,
-  seen: true,
+  hidden: true,
   starred: true,
   repostOfId: true,
   firstSeenAt: true,
@@ -149,12 +149,12 @@ export class PostingsService {
     return result;
   }
 
-  /** Offset-paginated list, newest first (id desc). ACTIVE only unless status is given. */
+  /** Offset-paginated list, newest first (id desc). ACTIVE only unless status is given; hidden postings are excluded unless `hidden` is set. */
   async list(q: PostingListQuery): Promise<PostingList> {
     const where: Prisma.JobPostingWhereInput = {
       source: q.source,
       status: q.status === 'all' ? undefined : (q.status ?? 'ACTIVE'),
-      seen: q.unseen ? false : undefined,
+      hidden: q.hidden ? true : false,
       starred: q.starred ? true : undefined,
       OR: q.q
         ? [
@@ -186,11 +186,6 @@ export class PostingsService {
     if (!exists) throw new NotFoundException(`posting ${id} not found`);
     const row = await this.prisma.jobPosting.update({ where: { id }, data: patch, select: LIST_SELECT });
     return serialize(row);
-  }
-
-  async markAllSeen(): Promise<number> {
-    const r = await this.prisma.jobPosting.updateMany({ where: { seen: false }, data: { seen: true } });
-    return r.count;
   }
 }
 

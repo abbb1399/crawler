@@ -76,12 +76,12 @@ export class CrawlController {
 
   @Get('stats')
   async stats(): Promise<Stats> {
-    const [total, active, unseen, starred, bySource, lastRun, queues] = await Promise.all([
+    const [total, active, hidden, starred, bySource, lastRun, queues] = await Promise.all([
       this.prisma.jobPosting.count(),
-      this.prisma.jobPosting.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.jobPosting.count({ where: { seen: false, status: 'ACTIVE' } }),
+      this.prisma.jobPosting.count({ where: { status: 'ACTIVE', hidden: false } }),
+      this.prisma.jobPosting.count({ where: { status: 'ACTIVE', hidden: true } }),
       this.prisma.jobPosting.count({ where: { starred: true } }),
-      this.prisma.jobPosting.groupBy({ by: ['source'], where: { status: 'ACTIVE' }, _count: { _all: true } }),
+      this.prisma.jobPosting.groupBy({ by: ['source'], where: { status: 'ACTIVE', hidden: false }, _count: { _all: true } }),
       this.prisma.crawlRun.findFirst({ orderBy: { id: 'desc' }, select: { finishedAt: true, startedAt: true } }),
       this.queues.counts(),
     ]);
@@ -89,7 +89,7 @@ export class CrawlController {
       postings: {
         total,
         active,
-        unseen,
+        hidden,
         starred,
         bySource: bySource.map((g) => ({ source: g.source, count: g._count._all })),
       },

@@ -78,7 +78,7 @@ model JobPosting {
   raw         Json
   firstSeenAt DateTime      @default(now())
   lastSeenAt  DateTime
-  seen        Boolean       @default(false)
+  hidden      Boolean       @default(false)
   starred     Boolean       @default(false)
 
   notifications NotificationLog[]

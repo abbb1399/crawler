@@ -83,7 +83,7 @@ export const Posting = z.object({
   url: z.string(),
   dueDate: z.string().nullable(),
   status: PostingStatus,
-  seen: z.boolean(),
+  hidden: z.boolean(),
   starred: z.boolean(),
   /** Set when this looks like a re-registration of an earlier posting. */
   repostOfId: z.number().nullable(),
@@ -98,7 +98,8 @@ export const PostingListQuery = z.object({
   /** Omit for ACTIVE only; "all" for everything. */
   status: z.union([PostingStatus, z.literal('all')]).optional(),
   q: z.string().trim().min(1).max(100).optional(),
-  unseen: z.stringbool().optional(),
+  /** Omit to exclude hidden postings; true for hidden ones only. */
+  hidden: z.stringbool().optional(),
   starred: z.stringbool().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(30),
@@ -115,10 +116,10 @@ export type PostingList = z.infer<typeof PostingList>;
 
 export const PostingPatch = z
   .object({
-    seen: z.boolean().optional(),
+    hidden: z.boolean().optional(),
     starred: z.boolean().optional(),
   })
-  .refine((v) => v.seen !== undefined || v.starred !== undefined, 'nothing to update');
+  .refine((v) => v.hidden !== undefined || v.starred !== undefined, 'nothing to update');
 export type PostingPatch = z.infer<typeof PostingPatch>;
 
 export const SearchProfile = z.object({
@@ -189,7 +190,7 @@ export const Stats = z.object({
   postings: z.object({
     total: z.number(),
     active: z.number(),
-    unseen: z.number(),
+    hidden: z.number(),
     starred: z.number(),
     bySource: z.array(z.object({ source: JobSource, count: z.number() })),
   }),

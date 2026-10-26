@@ -16,6 +16,7 @@ const ALL = 'all';
 const SEARCH_DEBOUNCE_MS = 400;
 
 const TOGGLES = [
+  { key: 'newToday', label: '오늘 신규만' },
   { key: 'hidden', label: '숨김만' },
   { key: 'starred', label: '별표만' },
   { key: 'expired', label: '만료 포함' },
@@ -29,7 +30,7 @@ const TOGGLES = [
 export function PostingsFilters() {
   const [isPending, startTransition] = useTransition();
   const [sp, setSp] = useQueryStates(postingsSearchParams, { shallow: false, startTransition });
-  const isFiltered = sp.q !== '' || sp.source !== null || sp.hidden || sp.starred || sp.expired;
+  const isFiltered = sp.q !== '' || sp.source !== null || sp.newToday || sp.hidden || sp.starred || sp.expired;
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm" aria-busy={isPending}>

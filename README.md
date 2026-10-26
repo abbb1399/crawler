@@ -80,7 +80,7 @@ SLACK_WEBHOOK_URL=...          # 넣으면 새 공고 알림 (미연동, 아래 
 ## 대시보드 (apps/web)
 
 - Next.js 16 App Router + Tailwind v4. 페이지는 서버 컴포넌트가 API를 직접 읽고, 버튼은 서버 액션으로 API를 호출합니다. 브라우저는 API에 직접 붙지 않습니다.
-- `/` 공고 목록: 소스·검색어·숨김만·별표·만료 포함 필터(바꾸는 즉시 적용, 검색어는 debounce, URL 상태는 nuqs), 30건씩 페이지네이션, 숨김/별표 토글. 숨긴 공고는 기본 목록과 통계에서 빠지고, 클릭한 링크는 브라우저 `:visited`로 흐려집니다.
+- `/` 공고 목록: 소스·검색어·오늘 신규만·숨김만·별표·만료 포함 필터(바꾸는 즉시 적용, 검색어는 debounce, URL 상태는 nuqs), 30건씩 페이지네이션, 숨김/별표 토글. 오늘 처음 잡힌 공고에는 NEW 배지와 헤더 집계. 숨긴 공고는 기본 목록과 통계에서 빠지고, 클릭한 링크는 브라우저 `:visited`로 흐려집니다.
 - `/profiles` 검색 프로필 CRUD, 활성 토글, "지금 수집"(모든 소스 enqueue).
 - `/runs` 최근 50회 실행 이력.
 - API 주소는 `API_URL`(로컬 기본 `http://localhost:3000`), Bull Board 링크는 `NEXT_PUBLIC_BULL_BOARD_URL`.

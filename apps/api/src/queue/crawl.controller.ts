@@ -1,6 +1,7 @@
 import { BadRequestException, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JobSource, type EnqueueResult, type ExpireResult, type Stats } from '@trawler/shared';
+import { startOfTodayKst } from '../common/time';
 import { CrawlerService } from '../crawler/crawler.service';
 import { NotificationsService } from '../notifier/notifications.service';
 import { PostingsService } from '../postings/postings.service';
@@ -86,11 +87,12 @@ export class CrawlController {
 
   @Get('stats')
   async stats(): Promise<Stats> {
-    const [total, active, hidden, starred, bySource, lastRun, queues] = await Promise.all([
+    const [total, active, hidden, starred, newToday, bySource, lastRun, queues] = await Promise.all([
       this.prisma.jobPosting.count(),
       this.prisma.jobPosting.count({ where: { status: 'ACTIVE', hidden: false } }),
       this.prisma.jobPosting.count({ where: { status: 'ACTIVE', hidden: true } }),
       this.prisma.jobPosting.count({ where: { starred: true } }),
+      this.prisma.jobPosting.count({ where: { status: 'ACTIVE', hidden: false, firstSeenAt: { gte: startOfTodayKst() } } }),
       this.prisma.jobPosting.groupBy({ by: ['source'], where: { status: 'ACTIVE', hidden: false }, _count: { _all: true } }),
       this.prisma.crawlRun.findFirst({ orderBy: { id: 'desc' }, select: { finishedAt: true, startedAt: true } }),
       this.queues.counts(),
@@ -101,6 +103,7 @@ export class CrawlController {
         active,
         hidden,
         starred,
+        newToday,
         bySource: bySource.map((g) => ({ source: g.source, count: g._count._all })),
       },
       lastRunAt: lastRun ? (lastRun.finishedAt ?? lastRun.startedAt).toISOString() : null,

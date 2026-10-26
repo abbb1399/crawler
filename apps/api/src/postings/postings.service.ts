@@ -7,6 +7,7 @@ import type {
   PostingPatch,
   RawPosting,
 } from '@trawler/shared';
+import { startOfTodayKst } from '../common/time';
 import type { Env } from '../config/env';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -160,6 +161,7 @@ export class PostingsService {
       status: q.status === 'all' ? undefined : (q.status ?? 'ACTIVE'),
       hidden: q.hidden ? true : false,
       starred: q.starred ? true : undefined,
+      firstSeenAt: q.newToday ? { gte: startOfTodayKst() } : undefined,
       OR: q.q
         ? [
             { title: { contains: q.q, mode: 'insensitive' } },
@@ -177,8 +179,9 @@ export class PostingsService {
         select: LIST_SELECT,
       }),
     ]);
+    const todayStart = startOfTodayKst();
     return {
-      items: rows.map(serialize),
+      items: rows.map((r) => serialize(r, todayStart)),
       total,
       page: q.page,
       pageCount: Math.max(1, Math.ceil(total / q.limit)),
@@ -203,15 +206,16 @@ export class PostingsService {
       }
       return updated;
     });
-    return serialize(row);
+    return serialize(row, startOfTodayKst());
   }
 }
 
 type ListRow = Prisma.JobPostingGetPayload<{ select: typeof LIST_SELECT }>;
 
-function serialize(r: ListRow) {
+function serialize(r: ListRow, todayStart: Date) {
   return {
     ...r,
+    isNew: r.firstSeenAt >= todayStart,
     dueDate: r.dueDate ? r.dueDate.toISOString().slice(0, 10) : null,
     firstSeenAt: r.firstSeenAt.toISOString(),
     lastSeenAt: r.lastSeenAt.toISOString(),

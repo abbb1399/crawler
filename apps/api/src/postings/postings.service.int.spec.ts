@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { startOfTodayKst } from '../common/time';
 import { DAY_MS, makePrisma, rawPosting, seedPosting, stubConfig, truncateAll } from '../test/db';
 import { PostingsService } from './postings.service';
 
@@ -197,6 +198,19 @@ describe('list', () => {
   it("status 'all' includes expired postings", async () => {
     expect(await ids({ status: 'all' })).toEqual([expired, b, a]);
     expect(await ids({ status: 'EXPIRED' })).toEqual([expired]);
+  });
+
+  it('newToday keeps only postings first seen today (Asia/Seoul) and flags them isNew', async () => {
+    const todayStart = startOfTodayKst();
+    const fresh = await seedPosting(prisma, rawPosting({ externalId: 'new1' }), { firstSeenAt: new Date(todayStart.getTime() + 60_000) });
+    const old = await seedPosting(prisma, rawPosting({ externalId: 'old1' }), { firstSeenAt: new Date(todayStart.getTime() - 60_000) });
+
+    // a and b were seeded "now", so they count as today's too.
+    expect(await ids({ newToday: true })).toEqual([fresh.id, b, a]);
+
+    const byId = new Map((await svc.list({ ...listDefaults, limit: 100 })).items.map((p) => [p.id, p.isNew]));
+    expect(byId.get(fresh.id)).toBe(true);
+    expect(byId.get(old.id)).toBe(false);
   });
 
   it('paginates with a correct pageCount and serialized dates', async () => {

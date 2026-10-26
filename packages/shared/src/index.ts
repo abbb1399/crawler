@@ -89,6 +89,8 @@ export const Posting = z.object({
   repostOfId: z.number().nullable(),
   firstSeenAt: z.string(),
   lastSeenAt: z.string(),
+  /** First seen today (Asia/Seoul calendar day). */
+  isNew: z.boolean(),
 });
 export type Posting = z.infer<typeof Posting>;
 
@@ -101,6 +103,8 @@ export const PostingListQuery = z.object({
   /** Omit to exclude hidden postings; true for hidden ones only. */
   hidden: z.stringbool().optional(),
   starred: z.stringbool().optional(),
+  /** Only postings first seen today (Asia/Seoul). */
+  newToday: z.stringbool().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(30),
 });
@@ -192,6 +196,8 @@ export const Stats = z.object({
     active: z.number(),
     hidden: z.number(),
     starred: z.number(),
+    /** ACTIVE, non-hidden postings first seen today (Asia/Seoul). */
+    newToday: z.number(),
     bySource: z.array(z.object({ source: JobSource, count: z.number() })),
   }),
   lastRunAt: z.string().nullable(),

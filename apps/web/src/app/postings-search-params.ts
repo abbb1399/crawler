@@ -17,6 +17,7 @@ export const postingsSearchParams = {
   q: parseAsString.withDefault(''),
   /** null = all sources */
   source: parseAsStringLiteral(JobSource.options),
+  newToday: parseAsBoolean.withDefault(false),
   hidden: parseAsBoolean.withDefault(false),
   starred: parseAsBoolean.withDefault(false),
   expired: parseAsBoolean.withDefault(false),

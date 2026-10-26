@@ -30,6 +30,7 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
   const filters = {
     source: sp.source ?? undefined,
     q: sp.q || undefined,
+    newToday: sp.newToday ? 'true' : undefined,
     hidden: sp.hidden ? 'true' : undefined,
     starred: sp.starred ? 'true' : undefined,
     status: sp.expired ? 'all' : undefined,
@@ -50,8 +51,8 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
           <h1 className="text-xl font-semibold">공고</h1>
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
             <span>
-              활성 {stats.postings.active.toLocaleString()} / 전체 {stats.postings.total.toLocaleString()} · 숨김{' '}
-              {stats.postings.hidden} · 별표 {stats.postings.starred}
+              활성 {stats.postings.active.toLocaleString()} / 전체 {stats.postings.total.toLocaleString()} · 오늘 신규{' '}
+              {stats.postings.newToday} · 숨김 {stats.postings.hidden} · 별표 {stats.postings.starred}
             </span>
             {stats.postings.bySource.map((s) => (
               <Badge key={s.source} variant="outline">
@@ -139,6 +140,11 @@ function PostingRow({ p }: { p: Posting }) {
       </form>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
+          {p.isNew && (
+            <Badge className="px-1.5 py-0 text-[10px]" title="오늘 처음 수집된 공고">
+              NEW
+            </Badge>
+          )}
           {/* Visited links dim via the browser's own history; :visited only allows colour changes. */}
           <a
             href={p.url}

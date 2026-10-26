@@ -4,6 +4,7 @@ import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Button } from '@/components/ui/button';
+import { TrawlerMark } from '@/components/trawler-mark';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -26,7 +27,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-full flex-col">
         <header className="border-b bg-card">
           <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-2">
-            <Link href="/" className="font-semibold tracking-tight">
+            <Link href="/" className="flex items-center gap-1.5 font-semibold tracking-tight">
+              <TrawlerMark className="size-5" />
               trawler
             </Link>
             <nav className="flex gap-1">

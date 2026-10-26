@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="border-b bg-card">
           <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-2">
             <Link href="/" className="flex items-center gap-1.5 font-semibold tracking-tight">
-              <TrawlerMark className="size-5" />
+              <TrawlerMark className="size-5 text-teal-700 dark:text-teal-400" />
               trawler
             </Link>
             <nav className="flex gap-1">

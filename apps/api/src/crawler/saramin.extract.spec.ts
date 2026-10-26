@@ -23,7 +23,7 @@ describe('extractSaraminItems', () => {
     expect(items[0]).toEqual({
       recIdx: '50001',
       title: 'Node.js 백엔드 개발자 (3년 이상)',
-      company: '(주)네이블커뮤니케이션즈',
+      company: '(주)모던랩스',
       location: '서울 강남구',
       dateText: '~ 11/15(일)',
       conditions: ['경력 3년↑', '대졸↑', '정규직'],
@@ -36,7 +36,7 @@ describe('extractSaraminItems', () => {
     expect(items[1]).toEqual({
       recIdx: '50002',
       title: '백엔드 개발자',
-      company: '네이블',
+      company: '모던랩스',
       location: '경기 성남시 분당구',
       dateText: '오늘마감',
       conditions: [],

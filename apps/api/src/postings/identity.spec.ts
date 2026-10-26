@@ -6,7 +6,7 @@ const base: RawPosting = {
   source: 'WANTED',
   externalId: '1',
   title: 'Node.js 백엔드 개발자',
-  company: '주식회사 네이블',
+  company: '주식회사 모던랩스',
   location: '서울 강남구',
   url: 'https://example.com/1',
   dueDate: '2026-11-30',
@@ -15,22 +15,22 @@ const base: RawPosting = {
 
 describe('normalizeForFingerprint', () => {
   it('drops corporate suffixes, case, whitespace and symbols but keeps hangul and digits', () => {
-    expect(normalizeForFingerprint('주식회사 네이블', 'Node.js 백엔드 개발자')).toBe('네이블|nodejs백엔드개발자');
-    expect(normalizeForFingerprint('(주)네이블', 'NODE.JS 백엔드 개발자')).toBe('네이블|nodejs백엔드개발자');
-    expect(normalizeForFingerprint('㈜네이블', 'node.js  백엔드-개발자!')).toBe('네이블|nodejs백엔드개발자');
-    expect(normalizeForFingerprint('(유)네이블', '백엔드 개발자 3년')).toBe('네이블|백엔드개발자3년');
+    expect(normalizeForFingerprint('주식회사 모던랩스', 'Node.js 백엔드 개발자')).toBe('모던랩스|nodejs백엔드개발자');
+    expect(normalizeForFingerprint('(주)모던랩스', 'NODE.JS 백엔드 개발자')).toBe('모던랩스|nodejs백엔드개발자');
+    expect(normalizeForFingerprint('㈜모던랩스', 'node.js  백엔드-개발자!')).toBe('모던랩스|nodejs백엔드개발자');
+    expect(normalizeForFingerprint('(유)모던랩스', '백엔드 개발자 3년')).toBe('모던랩스|백엔드개발자3년');
   });
 });
 
 describe('fingerprint', () => {
   it('is identical across company-name and title spelling variants', () => {
-    const a = fingerprint('주식회사 네이블', 'Node.js 백엔드 개발자');
-    expect(fingerprint('(주)네이블', 'node.js 백엔드 개발자')).toBe(a);
-    expect(fingerprint('네이블', 'NodeJS 백엔드 개발자')).toBe(a);
+    const a = fingerprint('주식회사 모던랩스', 'Node.js 백엔드 개발자');
+    expect(fingerprint('(주)모던랩스', 'node.js 백엔드 개발자')).toBe(a);
+    expect(fingerprint('모던랩스', 'NodeJS 백엔드 개발자')).toBe(a);
   });
 
   it('differs when the title really differs', () => {
-    expect(fingerprint('네이블', '백엔드 개발자')).not.toBe(fingerprint('네이블', '프론트엔드 개발자'));
+    expect(fingerprint('모던랩스', '백엔드 개발자')).not.toBe(fingerprint('모던랩스', '프론트엔드 개발자'));
   });
 });
 

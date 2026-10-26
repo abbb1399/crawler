@@ -77,9 +77,9 @@ describe('upsertMany', () => {
     });
 
     it('matches across sources and across company-name spellings', async () => {
-      const [origId] = (await svc.upsertMany([rawPosting({ company: '주식회사 네이블' })])).insertedIds;
+      const [origId] = (await svc.upsertMany([rawPosting({ company: '주식회사 모던랩스' })])).insertedIds;
       const r = await svc.upsertMany([
-        rawPosting({ source: 'SARAMIN', externalId: 's9', company: '(주)네이블', title: 'node.js 백엔드 개발자' }),
+        rawPosting({ source: 'SARAMIN', externalId: 's9', company: '(주)모던랩스', title: 'node.js 백엔드 개발자' }),
       ]);
       expect(r.repostIds).toHaveLength(1);
       expect((await prisma.jobPosting.findUniqueOrThrow({ where: { id: r.insertedIds[0] } })).repostOfId).toBe(origId);

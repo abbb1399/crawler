@@ -1,14 +1,11 @@
-import { JobSource, SOURCE_LABEL, type Posting } from '@trawler/shared';
+import { SOURCE_LABEL, type Posting } from '@trawler/shared';
 import { Eye, EyeOff, Star } from 'lucide-react';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import type { SearchParams } from 'nuqs/server';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Pagination,
   PaginationContent,
@@ -18,25 +15,26 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { toggleHidden, toggleStar } from '@/lib/actions';
 import { fmtDateTime, fmtDue } from '@/lib/format';
+import { PostingsFilters } from './postings-filters';
+import { loadPostingsSearchParams, serializePostingsSearchParams } from './postings-search-params';
 
 export const dynamic = 'force-dynamic';
 
-type Search = { source?: string; q?: string; hidden?: string; starred?: string; expired?: string; page?: string };
+type Search = Awaited<ReturnType<typeof loadPostingsSearchParams>>;
 
-export default async function PostingsPage({ searchParams }: { searchParams: Promise<Search> }) {
-  const sp = await searchParams;
+export default async function PostingsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const sp = await loadPostingsSearchParams(searchParams);
   const filters = {
-    source: JobSource.safeParse(sp.source).success ? sp.source : undefined,
+    source: sp.source ?? undefined,
     q: sp.q || undefined,
-    hidden: sp.hidden === '1' ? 'true' : undefined,
-    starred: sp.starred === '1' ? 'true' : undefined,
-    status: sp.expired === '1' ? 'all' : undefined,
+    hidden: sp.hidden ? 'true' : undefined,
+    starred: sp.starred ? 'true' : undefined,
+    status: sp.expired ? 'all' : undefined,
   };
-  const page = Math.max(1, Number.parseInt(sp.page ?? '', 10) || 1);
+  const page = Math.max(1, sp.page);
   const [stats, list] = await Promise.all([
     api.stats(),
     api.postings({ ...filters, page: String(page), limit: '30' }),
@@ -65,36 +63,7 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
         </div>
       </section>
 
-      <form className="flex flex-wrap items-center gap-3 text-sm" method="get">
-        <Input name="q" defaultValue={sp.q ?? ''} placeholder="제목/회사 검색" className="max-w-xs" />
-        <Select name="source" defaultValue={filters.source ?? ''}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="전체 소스" />
-          </SelectTrigger>
-          <SelectContent>
-            {JobSource.options.map((s) => (
-              <SelectItem key={s} value={s}>
-                {SOURCE_LABEL[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Label className="gap-1.5">
-          <Checkbox name="hidden" value="1" defaultChecked={sp.hidden === '1'} /> 숨김만
-        </Label>
-        <Label className="gap-1.5">
-          <Checkbox name="starred" value="1" defaultChecked={sp.starred === '1'} /> 별표만
-        </Label>
-        <Label className="gap-1.5">
-          <Checkbox name="expired" value="1" defaultChecked={sp.expired === '1'} /> 만료 포함
-        </Label>
-        <Button size="sm">적용</Button>
-        {(sp.q || sp.source || sp.hidden || sp.starred || sp.expired) && (
-          <Button asChild variant="link" size="sm" className="text-muted-foreground">
-            <Link href="/">초기화</Link>
-          </Button>
-        )}
-      </form>
+      <PostingsFilters />
 
       {list.items.length === 0 ? (
         <Empty>
@@ -207,12 +176,8 @@ function PostingRow({ p }: { p: Posting }) {
 }
 
 function pageHref(sp: Search, n: number): string {
-  const qs = new URLSearchParams(
-    Object.entries(sp).filter((e): e is [string, string] => !!e[1] && e[0] !== 'page'),
-  );
-  if (n > 1) qs.set('page', String(n));
-  const s = qs.toString();
-  return s ? `/?${s}` : '/';
+  // Defaults (page 1, empty filters) are dropped from the URL by nuqs.
+  return serializePostingsSearchParams('/', { ...sp, page: n });
 }
 
 /** 1 … 4 5 [6] 7 8 … 20 — first, last, and two on each side of the current page; null is a gap. */

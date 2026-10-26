@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Button } from '@/components/ui/button';
 import './globals.css';
 
@@ -46,7 +47,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Button>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+          <NuqsAdapter>{children}</NuqsAdapter>
+        </main>
       </body>
     </html>
   );

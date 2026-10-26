@@ -1,6 +1,7 @@
 import { REGION_LABEL, SOURCE_LABEL } from '@trawler/shared';
 import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { ActionForm } from '@/components/action-form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,15 +9,16 @@ import { Card, CardAction, CardContent, CardFooter, CardHeader, CardTitle } from
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import { api } from '@/lib/api';
 import { crawlNow, deleteProfile, toggleProfileEnabled } from '@/lib/actions';
+import { viewer } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProfilesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ queued?: string }>;
+  searchParams: Promise<{ queued?: string; error?: string }>;
 }) {
-  const [{ queued }, profiles] = await Promise.all([searchParams, api.profiles()]);
+  const [{ queued, error }, profiles, { signedIn }] = await Promise.all([searchParams, api.profiles(), viewer()]);
 
   return (
     <div className="space-y-5">
@@ -33,6 +35,12 @@ export default async function ProfilesPage({
           </Link>
         </Button>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {queued && (
         <Alert>
@@ -89,25 +97,15 @@ export default async function ProfilesPage({
                 </CardContent>
 
                 <CardFooter className="flex flex-wrap gap-2">
-                  <form action={crawlNow}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <Button size="xs">
-                      <Play data-icon="inline-start" /> 지금 수집
-                    </Button>
-                  </form>
-                  <form action={toggleProfileEnabled}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <input type="hidden" name="enabled" value={String(p.enabled)} />
-                    <Button variant="outline" size="xs">
-                      {p.enabled ? '비활성화' : '활성화'}
-                    </Button>
-                  </form>
-                  <form action={deleteProfile} className="ml-auto">
-                    <input type="hidden" name="id" value={p.id} />
-                    <Button variant="destructive" size="xs">
-                      <Trash2 data-icon="inline-start" /> 삭제
-                    </Button>
-                  </form>
+                  <ActionForm signedIn={signedIn} action={crawlNow} fields={{ id: p.id }} size="xs">
+                    <Play data-icon="inline-start" /> 지금 수집
+                  </ActionForm>
+                  <ActionForm signedIn={signedIn} action={toggleProfileEnabled} fields={{ id: p.id, enabled: p.enabled }} variant="outline" size="xs">
+                    {p.enabled ? '비활성화' : '활성화'}
+                  </ActionForm>
+                  <ActionForm signedIn={signedIn} action={deleteProfile} fields={{ id: p.id }} variant="destructive" size="xs" className="ml-auto">
+                    <Trash2 data-icon="inline-start" /> 삭제
+                  </ActionForm>
                 </CardFooter>
               </Card>
             </li>

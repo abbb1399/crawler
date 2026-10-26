@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.9.20",
     "@trawler/shared": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.0",

@@ -1,5 +1,6 @@
 import { JobSource, Region, REGION_LABEL, SOURCE_LABEL, type SearchProfile } from '@trawler/shared';
 import Link from 'next/link';
+import { SignInToAct } from '@/components/sign-in-to-act';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,10 +15,13 @@ export function ProfileForm({
   action,
   profile,
   error,
+  signedIn,
 }: {
   action: (formData: FormData) => Promise<void>;
   profile?: SearchProfile;
   error?: string;
+  /** From lib/auth viewer(): signed-out visitors get a sign-in prompt instead of the submit button. */
+  signedIn: boolean;
 }) {
   const sources = new Set(profile?.sources ?? JobSource.options);
   const regions = new Set<Region>(profile?.regions ?? ['SEOUL', 'GYEONGGI']);
@@ -109,7 +113,7 @@ export function ProfileForm({
         </Field>
 
         <div className="flex gap-2">
-          <Button>{profile ? '저장' : '만들기'}</Button>
+          {signedIn ? <Button>{profile ? '저장' : '만들기'}</Button> : <SignInToAct>{profile ? '저장' : '만들기'}</SignInToAct>}
           <Button asChild variant="outline">
             <Link href="/profiles">취소</Link>
           </Button>

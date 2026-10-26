@@ -42,7 +42,18 @@ BASIC_AUTH_HASH='<docker run --rm caddy:2 caddy hash-password --plaintext 비밀
 # 이하 선택. api 컨테이너로 그대로 전달됨
 CRAWL_CRON=0 8-22/2 * * *     # 08~22시 2시간마다(하루 8회). 새벽엔 공고가 거의 없어서 수집 안 함. 기본값은 30분마다
 # SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+# 대시보드 변경 권한 (Clerk). 없으면 운영에서는 모든 변경이 거부된다(조회는 됨)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+OWNER_EMAILS=you@example.com            # 쉼표로 여러 명
 ```
+
+### Clerk 설정
+
+1. clerk.com에서 앱 생성. `*.sslip.io`에는 프로덕션 인스턴스(자체 도메인 DNS 필요)를 붙일 수 없으니 **개발 인스턴스 키(pk_test/sk_test)**를 그대로 쓴다. 로그인 모달에 "Development mode"가 표시되고 사용자 100명 제한이 있지만 소유자 1명에는 충분하다.
+2. Clerk 대시보드 → Restrictions에서 **가입 제한**을 켜고 본인 계정만 가입한다. 코드 쪽 `OWNER_EMAILS` 검사는 이중 안전망.
+3. 공개 키는 이미지 빌드 때 인라인되므로 GitHub 저장소 Settings → Secrets and variables → **Variables**에 `CLERK_PUBLISHABLE_KEY`(pk_test…)를 넣는다. 시크릿과 소유자 이메일은 위 `.env`.
+4. 조회는 로그인 없이 되고, 숨김·별표·프로필 변경·지금 수집 버튼을 누르는 순간 로그인 모달이 뜬다.
 
 `.env`를 바꾼 뒤에는 `docker compose -f docker-compose.prod.yml up -d`로 반영.
 

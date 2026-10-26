@@ -4,6 +4,7 @@ import { JobSource, Region, SearchProfileInput, SearchProfilePatch } from '@traw
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { api, ApiError } from './api';
+import { requireOwner } from './auth';
 
 function num(v: FormDataEntryValue | null): number {
   const n = Number(v);
@@ -14,6 +15,7 @@ function num(v: FormDataEntryValue | null): number {
 // --- postings ---------------------------------------------------------------
 
 export async function toggleStar(formData: FormData) {
+  await requireOwner('/');
   const id = num(formData.get('id'));
   const starred = formData.get('starred') === 'true';
   await api.patchPosting(id, { starred: !starred });
@@ -21,6 +23,7 @@ export async function toggleStar(formData: FormData) {
 }
 
 export async function toggleHidden(formData: FormData) {
+  await requireOwner('/');
   const id = num(formData.get('id'));
   const hidden = formData.get('hidden') === 'true';
   await api.patchPosting(id, { hidden: !hidden });
@@ -58,6 +61,7 @@ function errorMessage(e: unknown): string {
 }
 
 export async function createProfile(formData: FormData) {
+  await requireOwner('/profiles/new');
   const parsed = SearchProfileInput.safeParse(profileFromForm(formData));
   if (!parsed.success) {
     redirect(`/profiles/new?error=${encodeURIComponent(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', '))}`);
@@ -72,6 +76,7 @@ export async function createProfile(formData: FormData) {
 }
 
 export async function updateProfile(formData: FormData) {
+  await requireOwner('/profiles');
   const id = num(formData.get('id'));
   const parsed = SearchProfilePatch.safeParse(profileFromForm(formData));
   if (!parsed.success) {
@@ -87,6 +92,7 @@ export async function updateProfile(formData: FormData) {
 }
 
 export async function toggleProfileEnabled(formData: FormData) {
+  await requireOwner('/profiles');
   const id = num(formData.get('id'));
   const enabled = formData.get('enabled') === 'true';
   await api.updateProfile(id, { enabled: !enabled });
@@ -94,12 +100,14 @@ export async function toggleProfileEnabled(formData: FormData) {
 }
 
 export async function deleteProfile(formData: FormData) {
+  await requireOwner('/profiles');
   const id = num(formData.get('id'));
   await api.deleteProfile(id);
   revalidatePath('/profiles');
 }
 
 export async function crawlNow(formData: FormData) {
+  await requireOwner('/profiles');
   const id = num(formData.get('id'));
   const jobs = await api.enqueueCrawl(id);
   revalidatePath('/profiles');

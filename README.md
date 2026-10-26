@@ -84,7 +84,7 @@ SLACK_WEBHOOK_URL=...          # 넣으면 새 공고 알림 (미연동, 아래 
 - `/profiles` 검색 프로필 CRUD, 활성 토글, "지금 수집"(모든 소스 enqueue).
 - `/runs` 최근 50회 실행 이력.
 - API 주소는 `API_URL`(로컬 기본 `http://localhost:3000`), Bull Board 링크는 `NEXT_PUBLIC_BULL_BOARD_URL`.
-- 대시보드는 로그인 없이 공개, Bull Board만 Basic Auth.
+- 조회는 로그인 없이 공개. 숨김·별표·프로필 변경·지금 수집은 버튼을 누를 때 Clerk 로그인을 요구하고, `OWNER_EMAILS`의 계정만 통과. 키가 없으면 로컬은 열린 모드, 운영은 변경 거부. Bull Board는 Basic Auth.
 
 ## 운영 동작
 

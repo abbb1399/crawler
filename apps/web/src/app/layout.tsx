@@ -1,3 +1,4 @@
+import { ClerkProvider, SignedIn, UserButton } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ExternalLink } from 'lucide-react';
@@ -5,6 +6,7 @@ import Link from 'next/link';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Button } from '@/components/ui/button';
 import { TrawlerMark } from '@/components/trawler-mark';
+import { clerkEnabled } from '@/lib/clerk-enabled';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -22,9 +24,8 @@ const NAV = [
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="ko" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col overflow-x-hidden">
+  const shell = (
+    <>
         <header className="border-b bg-card">
           {/* Wraps on phones: logo + nav on one line, the Bull Board link drops to the next. */}
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2">
@@ -48,11 +49,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Bull Board <ExternalLink data-icon="inline-end" />
               </a>
             </Button>
+            {/* Sign-in is only asked for when a change button is pressed; signed-in owners get the account menu here. */}
+            {clerkEnabled && (
+              <SignedIn>
+                <UserButton />
+              </SignedIn>
+            )}
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
           <NuqsAdapter>{children}</NuqsAdapter>
         </main>
+    </>
+  );
+  return (
+    <html lang="ko" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col overflow-x-hidden">
+        {clerkEnabled ? <ClerkProvider>{shell}</ClerkProvider> : shell}
       </body>
     </html>
   );

@@ -22,6 +22,8 @@ export const postingsSearchParams = {
   starred: parseAsBoolean.withDefault(false),
   expired: parseAsBoolean.withDefault(false),
   page: parseAsInteger.withDefault(1),
+  /** One-shot message from a rejected server action (e.g. not the owner). */
+  error: parseAsString,
 };
 
 export const loadPostingsSearchParams = createLoader(postingsSearchParams);

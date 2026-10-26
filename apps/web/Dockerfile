@@ -13,6 +13,9 @@ RUN pnpm install --frozen-lockfile --filter web...
 # Inlined at build time. Same origin as the dashboard: Caddy routes /admin/queues to the API.
 ARG NEXT_PUBLIC_BULL_BOARD_URL=/admin/queues
 ENV NEXT_PUBLIC_BULL_BOARD_URL=$NEXT_PUBLIC_BULL_BOARD_URL
+# Clerk publishable key (public, not a secret). Empty = Clerk disabled in the built image.
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
 COPY . .
 RUN pnpm --filter @trawler/shared build && pnpm --filter web build

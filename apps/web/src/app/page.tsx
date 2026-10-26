@@ -2,8 +2,9 @@ import { SOURCE_LABEL, type Posting } from '@trawler/shared';
 import { Eye, EyeOff, Star } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import type { SearchParams } from 'nuqs/server';
+import { ActionForm } from '@/components/action-form';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import {
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/pagination';
 import { api } from '@/lib/api';
 import { toggleHidden, toggleStar } from '@/lib/actions';
+import { viewer } from '@/lib/auth';
 import { fmtDateTime, fmtDue } from '@/lib/format';
 import { PostingsFilters } from './postings-filters';
 import { loadPostingsSearchParams, serializePostingsSearchParams } from './postings-search-params';
@@ -36,9 +38,10 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
     status: sp.expired ? 'all' : undefined,
   };
   const page = Math.max(1, sp.page);
-  const [stats, list] = await Promise.all([
+  const [stats, list, { signedIn }] = await Promise.all([
     api.stats(),
     api.postings({ ...filters, page: String(page), limit: '30' }),
+    viewer(),
   ]);
 
   // e.g. the last page emptied out after hiding its last posting
@@ -66,6 +69,12 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
 
       <PostingsFilters />
 
+      {sp.error && (
+        <Alert variant="destructive">
+          <AlertDescription>{sp.error}</AlertDescription>
+        </Alert>
+      )}
+
       {list.items.length === 0 ? (
         <Empty>
           <EmptyHeader>
@@ -77,7 +86,7 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
         <Card className="gap-0 py-0">
           <ul className="divide-y">
             {list.items.map((p) => (
-              <PostingRow key={p.id} p={p} />
+              <PostingRow key={p.id} p={p} signedIn={signedIn} />
             ))}
           </ul>
         </Card>
@@ -122,22 +131,21 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
   );
 }
 
-function PostingRow({ p }: { p: Posting }) {
+function PostingRow({ p, signedIn }: { p: Posting; signedIn: boolean }) {
   const due = fmtDue(p.dueDate);
   return (
     <li className="flex items-start gap-3 px-4 py-3">
-      <form action={toggleStar}>
-        <input type="hidden" name="id" value={p.id} />
-        <input type="hidden" name="starred" value={String(p.starred)} />
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className={p.starred ? 'text-yellow-500 hover:text-yellow-500' : 'text-muted-foreground/50 hover:text-yellow-500'}
-          title={p.starred ? '별표 해제' : '별표'}
-        >
-          <Star className={p.starred ? 'fill-current' : ''} />
-        </Button>
-      </form>
+      <ActionForm
+        signedIn={signedIn}
+        action={toggleStar}
+        fields={{ id: p.id, starred: p.starred }}
+        variant="ghost"
+        size="icon-sm"
+        buttonClassName={p.starred ? 'text-yellow-500 hover:text-yellow-500' : 'text-muted-foreground/50 hover:text-yellow-500'}
+        title={p.starred ? '별표 해제' : '별표'}
+      >
+        <Star className={p.starred ? 'fill-current' : ''} />
+      </ActionForm>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           {p.isNew && (
@@ -169,21 +177,17 @@ function PostingRow({ p }: { p: Posting }) {
           )}
         </div>
       </div>
-      <form action={toggleHidden}>
-        <input type="hidden" name="id" value={p.id} />
-        <input type="hidden" name="hidden" value={String(p.hidden)} />
-        <Button variant="outline" size="xs">
-          {p.hidden ? <Eye data-icon="inline-start" /> : <EyeOff data-icon="inline-start" />}
-          {p.hidden ? '숨김 해제' : '숨김'}
-        </Button>
-      </form>
+      <ActionForm signedIn={signedIn} action={toggleHidden} fields={{ id: p.id, hidden: p.hidden }} variant="outline" size="xs">
+        {p.hidden ? <Eye data-icon="inline-start" /> : <EyeOff data-icon="inline-start" />}
+        {p.hidden ? '숨김 해제' : '숨김'}
+      </ActionForm>
     </li>
   );
 }
 
 function pageHref(sp: Search, n: number): string {
   // Defaults (page 1, empty filters) are dropped from the URL by nuqs.
-  return serializePostingsSearchParams('/', { ...sp, page: n });
+  return serializePostingsSearchParams('/', { ...sp, error: null, page: n });
 }
 
 /** 1 … 4 5 [6] 7 8 … 20 — first, last, and two on each side of the current page; null is a gap. */

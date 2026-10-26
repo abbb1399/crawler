@@ -4,6 +4,7 @@ import { RawPosting, type Region } from '@trawler/shared';
 import type { Page } from 'playwright';
 import type { Env } from '../config/env';
 import { BrowserService } from './browser.service';
+import { extractSaraminItems, type SaraminItem } from './saramin.extract';
 import type { FetchOptions, SourceAdapter } from './source-adapter';
 
 /**
@@ -22,18 +23,6 @@ const LOC_MCD: Record<Region, string> = {
   GYEONGGI: '102000',
   INCHEON: '108000',
 };
-
-/** Shape extracted inside the page; keep it JSON-serializable. */
-interface SaraminItem {
-  recIdx: string;
-  title: string;
-  company: string;
-  location: string | null;
-  dateText: string;
-  conditions: string[];
-  sector: string | null;
-  registeredText: string | null;
-}
 
 @Injectable()
 export class SaraminAdapter implements SourceAdapter {
@@ -85,25 +74,7 @@ export class SaraminAdapter implements SourceAdapter {
       throw new Error(`saramin search failed: HTTP ${status} (${url})`);
     }
 
-    const items = await page.$$eval('.item_recruit', (nodes) =>
-      nodes.map((el) => {
-        const text = (sel: string) => el.querySelector(sel)?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-        const titleEl = el.querySelector('.job_tit a');
-        const condSpans = [...el.querySelectorAll('.job_condition > span')].map(
-          (s) => s.textContent?.replace(/\s+/g, ' ').trim() ?? '',
-        );
-        return {
-          recIdx: el.getAttribute('value') ?? '',
-          title: titleEl?.getAttribute('title')?.trim() || text('.job_tit a'),
-          company: text('.corp_name a') || text('.corp_name'),
-          location: condSpans[0] || null,
-          dateText: text('.job_date .date'),
-          conditions: condSpans.slice(1),
-          sector: text('.job_sector') || null,
-          registeredText: text('.job_sector .job_day') || null,
-        };
-      }),
-    );
+    const items = await page.$$eval('.item_recruit', extractSaraminItems);
 
     if (items.length === 0) {
       // Either a genuine empty result or a block/captcha page; tell them apart by the result counter.

@@ -25,6 +25,15 @@ pnpm dev                       # API http://localhost:3000, 대시보드 http://
 
 `pnpm dev:api` / `pnpm dev:web`으로 따로 띄울 수 있습니다. 사람인 수집에는 크로미엄이 필요합니다: `pnpm --filter api exec playwright install chromium` (최초 1회).
 
+### 테스트
+
+```bash
+pnpm test          # 단위 테스트 (api · shared · web, vitest)
+pnpm test:int      # 통합 테스트 — 로컬 Postgres에 trawler_test DB를 만들고 마이그레이션 후 실행
+```
+
+CI(`.github/workflows/deploy.yml`)는 PR과 main 푸시에서 타입체크·린트·단위·통합 테스트를 Postgres 서비스 컨테이너로 돌리고, 통과해야 이미지를 빌드·배포합니다.
+
 ### DB / 크롤 명령 (로컬)
 
 ```bash

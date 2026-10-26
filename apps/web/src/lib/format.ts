@@ -4,12 +4,15 @@ const dt = new Intl.DateTimeFormat('ko-KR', {
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
-  hour12: false,
+  hourCycle: 'h23',
 });
 
+/** "2026-10-26T00:30:00Z" → "10/26 09:30" (Asia/Seoul). Built from parts: ko-KR's literal output ("10. 26. 09:30") varies by ICU version. */
 export function fmtDateTime(iso: string | null | undefined): string {
   if (!iso) return '-';
-  return dt.format(new Date(iso)).replace(/\. /g, '/').replace('.', '');
+  const p: Record<string, string> = {};
+  for (const part of dt.formatToParts(new Date(iso))) p[part.type] = part.value;
+  return `${p['month']}/${p['day']} ${p['hour']}:${p['minute']}`;
 }
 
 /** "2026-11-22" → "11/22", with a D-n hint. */

@@ -13,7 +13,10 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "dev": "nest start --watch"
+    "dev": "nest start --watch",
+    "test": "vitest run --project unit",
+    "test:int": "vitest run --project integration",
+    "test:watch": "vitest --project unit"
   },
   "dependencies": {
     "@bull-board/api": "^9.10.4",

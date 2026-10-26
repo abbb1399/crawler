@@ -13,6 +13,12 @@
     "infra:down": "docker compose down",
     "infra:logs": "docker compose logs -f",
     "dev:api": "pnpm --filter api start:dev",
-    "dev:web": "pnpm --filter web dev"
+    "dev:web": "pnpm --filter web dev",
+    "test": "pnpm -r --if-present test",
+    "test:int": "pnpm --filter api test:int"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3",
+    "vitest": "^5.0.5"
   }
 }

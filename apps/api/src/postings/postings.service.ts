@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type {
@@ -11,6 +10,7 @@ import type {
 import type { Env } from '../config/env';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { dedupeByKey, key, toRow } from './identity';
 
 export interface UpsertResult {
   found: number;
@@ -197,50 +197,5 @@ function serialize(r: ListRow) {
     dueDate: r.dueDate ? r.dueDate.toISOString().slice(0, 10) : null,
     firstSeenAt: r.firstSeenAt.toISOString(),
     lastSeenAt: r.lastSeenAt.toISOString(),
-  };
-}
-
-function key(source: string, externalId: string) {
-  return `${source}:${externalId}`;
-}
-
-function dedupeByKey(postings: RawPosting[]): RawPosting[] {
-  const seen = new Map<string, RawPosting>();
-  for (const p of postings) seen.set(key(p.source, p.externalId), p);
-  return [...seen.values()];
-}
-
-function contentHash(p: RawPosting): string {
-  return createHash('sha1')
-    .update([p.title, p.company, p.dueDate ?? ''].join('|'))
-    .digest('hex');
-}
-
-/** Must stay in sync with the SQL backfill in the phase6 migration. */
-export function normalizeForFingerprint(company: string, title: string): string {
-  const c = company
-    .replace(/주식회사|㈜|\(주\)|\(유\)/g, '')
-    .toLowerCase()
-    .replace(/[^0-9a-z가-힣]/g, '');
-  const t = title.toLowerCase().replace(/[^0-9a-z가-힣]/g, '');
-  return `${c}|${t}`;
-}
-
-export function fingerprint(company: string, title: string): string {
-  return createHash('md5').update(normalizeForFingerprint(company, title)).digest('hex');
-}
-
-function toRow(p: RawPosting) {
-  return {
-    source: p.source,
-    externalId: p.externalId,
-    title: p.title,
-    company: p.company,
-    location: p.location,
-    url: p.url,
-    dueDate: p.dueDate ? new Date(p.dueDate) : null,
-    contentHash: contentHash(p),
-    fingerprint: fingerprint(p.company, p.title),
-    raw: p.raw as object,
   };
 }

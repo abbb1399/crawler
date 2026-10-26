@@ -1,4 +1,4 @@
-import { SourceIcon } from '@/components/source-icon';
+import { SOURCE_LABEL } from '@trawler/shared';
 import { Card } from '@/components/ui/card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -53,9 +53,7 @@ export default async function RunsPage() {
               {runs.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="text-muted-foreground">{r.id}</TableCell>
-                  <TableCell>
-                    <SourceIcon source={r.source} className="size-5" />
-                  </TableCell>
+                  <TableCell>{SOURCE_LABEL[r.source]}</TableCell>
                   <TableCell>{r.profile?.name ?? r.profileId}</TableCell>
                   <TableCell>{fmtDateTime(r.startedAt)}</TableCell>
                   <TableCell>{fmtDuration(r.startedAt, r.finishedAt)}</TableCell>

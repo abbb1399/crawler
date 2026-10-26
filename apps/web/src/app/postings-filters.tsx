@@ -4,7 +4,6 @@ import { JobSource, SOURCE_LABEL } from '@trawler/shared';
 import { Loader2 } from 'lucide-react';
 import { debounce, defaultRateLimit, useQueryStates } from 'nuqs';
 import { useTransition } from 'react';
-import { SourceIcon } from '@/components/source-icon';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -60,7 +59,6 @@ export function PostingsFilters() {
           <SelectItem value={ALL}>전체 소스</SelectItem>
           {JobSource.options.map((s) => (
             <SelectItem key={s} value={s}>
-              <SourceIcon source={s} />
               {SOURCE_LABEL[s]}
             </SelectItem>
           ))}

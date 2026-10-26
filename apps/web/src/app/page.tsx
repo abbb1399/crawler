@@ -1,11 +1,10 @@
-import type { Posting } from '@trawler/shared';
+import { SOURCE_LABEL, type Posting } from '@trawler/shared';
 import { Eye, EyeOff, Star } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import type { SearchParams } from 'nuqs/server';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { SourceIcon } from '@/components/source-icon';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import {
   Pagination,
@@ -56,8 +55,7 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
             </span>
             {stats.postings.bySource.map((s) => (
               <Badge key={s.source} variant="outline">
-                <SourceIcon source={s.source} className="size-3.5" />
-                {s.count}
+                {SOURCE_LABEL[s.source]} {s.count}
               </Badge>
             ))}
             <span>마지막 수집 {fmtDateTime(stats.lastRunAt)}</span>
@@ -152,7 +150,7 @@ function PostingRow({ p }: { p: Posting }) {
           </a>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <SourceIcon source={p.source} />
+          <Badge variant="secondary">{SOURCE_LABEL[p.source]}</Badge>
           <span className="text-foreground">{p.company}</span>
           {p.location && <span>{p.location}</span>}
           <span className={due.urgent ? 'font-medium text-destructive' : ''}>마감 {due.label}</span>

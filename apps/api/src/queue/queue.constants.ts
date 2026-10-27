@@ -7,8 +7,6 @@ export function crawlQueueName(source: JobSource): string {
 
 export const NOTIFY_QUEUE = 'notify';
 
-/** Sources that have a registered crawl queue + processor. */
-export const QUEUED_SOURCES: JobSource[] = ['WANTED', 'SARAMIN'];
 
 export interface CrawlJobData {
   source: JobSource;

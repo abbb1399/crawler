@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { RawPosting, type Region } from '@trawler/shared';
 import { z } from 'zod';
 import type { Env } from '../config/env';
+import { sleep, USER_AGENT } from './scrape';
 import type { FetchOptions, SourceAdapter } from './source-adapter';
 
 /**
@@ -32,8 +33,6 @@ const LOCATION_SLUG: Record<Region, string> = {
   INCHEON: 'incheon.all',
 };
 const BASE_URL = 'https://www.wanted.co.kr';
-const USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
 @Injectable()
 export class WantedAdapter implements SourceAdapter {
@@ -100,8 +99,4 @@ export class WantedAdapter implements SourceAdapter {
       raw: job,
     });
   }
-}
-
-function sleep(ms: number) {
-  return new Promise<void>((r) => setTimeout(r, ms));
 }

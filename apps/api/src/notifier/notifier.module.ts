@@ -8,7 +8,6 @@ import { SlackNotifier } from './slack.notifier';
     SlackNotifier,
     {
       provide: NOTIFIERS,
-      // TelegramNotifier joins this list in Phase 6.
       useFactory: (slack: SlackNotifier) => [slack],
       inject: [SlackNotifier],
     },

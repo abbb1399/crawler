@@ -5,6 +5,7 @@ import type { Page } from 'playwright';
 import type { Env } from '../config/env';
 import { BrowserService } from './browser.service';
 import { extractSaraminItems, type SaraminItem } from './saramin.extract';
+import { sleep } from './scrape';
 import type { FetchOptions, SourceAdapter } from './source-adapter';
 
 /**
@@ -131,8 +132,4 @@ function toISODate(d: Date) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
-}
-
-function sleep(ms: number) {
-  return new Promise<void>((r) => setTimeout(r, ms));
 }

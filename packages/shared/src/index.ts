@@ -80,7 +80,7 @@ export const CrawlTriggerQuery = z.object({
 });
 export type CrawlTriggerQuery = z.infer<typeof CrawlTriggerQuery>;
 
-export const NotifyChannel = z.enum(['SLACK', 'TELEGRAM']);
+export const NotifyChannel = z.enum(['SLACK']);
 export type NotifyChannel = z.infer<typeof NotifyChannel>;
 
 /** Result of a notification pass (POST /maintenance/notify, and inside CrawlSyncResult). */

@@ -1,6 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import type { Env } from '../config/env';
 import { PostingsService } from '../postings/postings.service';
@@ -14,14 +13,14 @@ import { QueueService } from '../queue/queue.service';
  *  - maintenance: nightly expiry pass + closing abandoned RUNNING runs (cheap DB updates, inline).
  */
 @Injectable()
-export class SchedulerService implements OnModuleInit {
+export class SchedulerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SchedulerService.name);
   private readonly crawlCron: string;
   private readonly maintenanceCron: string;
   private readonly runOnBoot: boolean;
+  private readonly jobs: CronJob[] = [];
 
   constructor(
-    private readonly registry: SchedulerRegistry,
     private readonly queues: QueueService,
     private readonly prisma: PrismaService,
     private readonly postings: PostingsService,
@@ -34,12 +33,12 @@ export class SchedulerService implements OnModuleInit {
 
   onModuleInit() {
     const crawl = new CronJob(this.crawlCron, () => void this.tick('cron'));
-    this.registry.addCronJob('enqueue-crawls', crawl);
+    this.jobs.push(crawl);
     crawl.start();
     this.logger.log(`crawl cron "${this.crawlCron}", next ${crawl.nextDate().toISO()}`);
 
     const maint = new CronJob(this.maintenanceCron, () => void this.maintenance('cron'));
-    this.registry.addCronJob('maintenance', maint);
+    this.jobs.push(maint);
     maint.start();
     this.logger.log(`maintenance cron "${this.maintenanceCron}", next ${maint.nextDate().toISO()}`);
 
@@ -48,13 +47,15 @@ export class SchedulerService implements OnModuleInit {
     }
   }
 
+  onModuleDestroy() {
+    for (const job of this.jobs) void job.stop();
+  }
+
   async tick(trigger: 'cron' | 'boot'): Promise<number> {
     const profiles = await this.prisma.searchProfile.findMany({ where: { enabled: true } });
-    const queued = new Set(this.queues.queuedSources());
     let n = 0;
     for (const profile of profiles) {
       for (const source of profile.sources) {
-        if (!queued.has(source)) continue;
         try {
           const { jobId } = await this.queues.enqueueCrawl(source, profile.id, trigger);
           this.logger.debug(`enqueued ${jobId}`);

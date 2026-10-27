@@ -4,9 +4,7 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { chromium, type BrowserContext, type Page } from 'playwright';
 import type { Env } from '../config/env';
-
-const USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+import { USER_AGENT } from './scrape';
 
 /**
  * Playwright lifecycle. One persistent context (cookies survive restarts) is opened

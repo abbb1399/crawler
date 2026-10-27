@@ -8,7 +8,6 @@ import {
   crawlJobId,
   crawlQueueName,
   NOTIFY_QUEUE,
-  QUEUED_SOURCES,
   type CrawlJobData,
   type NotifyJobData,
 } from './queue.constants';
@@ -43,14 +42,6 @@ export class QueueService implements OnModuleInit {
       await q.drain(); // removes waiting + delayed; active jobs finish or get stalled-retried
       this.logger.warn(`drained queue "${q.name}" (QUEUE_DRAIN_ON_BOOT)`);
     }
-  }
-
-  hasQueue(source: JobSource): boolean {
-    return this.crawlQueues.has(source);
-  }
-
-  queuedSources(): JobSource[] {
-    return QUEUED_SOURCES.filter((s) => this.crawlQueues.has(s));
   }
 
   async enqueueCrawl(

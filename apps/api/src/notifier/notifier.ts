@@ -1,4 +1,5 @@
-import type { JobSource, NotifyChannel } from '../generated/prisma/enums';
+import type { NotifyChannel } from '@trawler/shared';
+import type { JobSource } from '../generated/prisma/enums';
 
 /** The subset of JobPosting a notifier needs to render a message. */
 export interface NotifiablePosting {

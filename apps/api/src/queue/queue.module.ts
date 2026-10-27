@@ -4,7 +4,7 @@ import { BullBoardModule } from '@bull-board/nestjs';
 import { BullModule } from '@nestjs/bullmq';
 import { Module, type DynamicModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
+import { JobSource } from '@trawler/shared';
 import type { Env } from '../config/env';
 import { runsWorkers } from '../config/role';
 import { CrawlerModule } from '../crawler/crawler.module';
@@ -14,10 +14,10 @@ import { SchedulerService } from '../scheduler/scheduler.service';
 import { CrawlController } from './crawl.controller';
 import { SaraminCrawlProcessor, WantedCrawlProcessor } from './crawl.processor';
 import { NotifyProcessor } from './notify.processor';
-import { crawlQueueName, NOTIFY_QUEUE, QUEUED_SOURCES } from './queue.constants';
+import { crawlQueueName, NOTIFY_QUEUE } from './queue.constants';
 import { QueueService } from './queue.service';
 
-const QUEUE_NAMES = [...QUEUED_SOURCES.map(crawlQueueName), NOTIFY_QUEUE];
+const QUEUE_NAMES = [...JobSource.options.map(crawlQueueName), NOTIFY_QUEUE];
 
 @Module({})
 export class QueueModule {
@@ -56,7 +56,6 @@ export class QueueModule {
         CrawlerModule,
         NotifierModule,
         PostingsModule,
-        ...(workerSide ? [ScheduleModule.forRoot()] : []),
       ],
       controllers: [CrawlController],
       providers: [

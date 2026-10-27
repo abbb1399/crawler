@@ -38,11 +38,7 @@ export class CrawlController {
   @Post('crawl/:source')
   @Throttle(EXPENSIVE)
   enqueue(@Param('source') sourceParam: string, @Query(TriggerQuery) q: CrawlTriggerQuery): Promise<EnqueueResult> {
-    const source = parseSource(sourceParam);
-    if (!this.queues.hasQueue(source)) {
-      throw new BadRequestException(`source ${source} has no crawl queue yet`);
-    }
-    return this.queues.enqueueCrawl(source, q.profileId, 'manual');
+    return this.queues.enqueueCrawl(parseSource(sourceParam), q.profileId, 'manual');
   }
 
   /** Enqueue every source of one profile: POST /crawl?profileId=1 */
@@ -53,9 +49,7 @@ export class CrawlController {
     if (!profile) throw new NotFoundException(`profile ${q.profileId} not found`);
     const results: EnqueueResult[] = [];
     for (const source of profile.sources) {
-      if (this.queues.hasQueue(source)) {
-        results.push(await this.queues.enqueueCrawl(source, q.profileId, 'manual'));
-      }
+      results.push(await this.queues.enqueueCrawl(source, q.profileId, 'manual'));
     }
     return results;
   }

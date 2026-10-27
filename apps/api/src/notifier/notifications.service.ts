@@ -1,8 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { DispatchResult } from '@trawler/shared';
+import type { DispatchResult, NotifyChannel } from '@trawler/shared';
 import type { Env } from '../config/env';
-import type { NotifyChannel } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { NOTIFIERS, type NotifiablePosting, type Notifier } from './notifier';
 

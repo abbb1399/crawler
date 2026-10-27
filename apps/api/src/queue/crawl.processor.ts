@@ -32,7 +32,7 @@ export abstract class BaseCrawlProcessor extends WorkerHost {
     const { source, profileId, trigger } = job.data;
     const attempt = job.attemptsMade + 1;
     const maxAttempts = job.opts.attempts ?? 1;
-    this.logger.log(`job ${job.id} (${trigger}) attempt ${attempt}/${maxAttempts}: ${source} profile=${profileId}`);
+    this.logger.log({ jobId: job.id, trigger, attempt, maxAttempts, source, profileId }, 'crawl job start');
     await job.updateProgress(5);
 
     let summary: CrawlSummary;
@@ -57,6 +57,10 @@ export abstract class BaseCrawlProcessor extends WorkerHost {
       await this.queues.enqueueNotify({ runId: summary.runId });
     }
     await job.updateProgress(100);
+    this.logger.log(
+      { jobId: job.id, runId: summary.runId, inserted: summary.inserted, updated: summary.updated, durationMs: summary.durationMs },
+      'crawl job done',
+    );
     return summary;
   }
 }

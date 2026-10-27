@@ -36,7 +36,8 @@ export class CrawlerService {
     const run = await this.prisma.crawlRun.create({ data: { source, profileId } });
     const started = Date.now();
     this.logger.log(
-      `run#${run.id} ${source} profile=${profile.name} keywords=${profile.keywords.join(',')} regions=${profile.regions.join(',') || 'all'}`,
+      { runId: run.id, source, profileId, profile: profile.name, keywords: profile.keywords, regions: profile.regions },
+      'run start',
     );
 
     try {
@@ -75,7 +76,16 @@ export class CrawlerService {
         durationMs: Date.now() - started,
       };
       this.logger.log(
-        `run#${run.id} done: fetched=${summary.fetched} found=${summary.found} inserted=${summary.inserted} updated=${summary.updated} in ${summary.durationMs}ms`,
+        {
+          runId: run.id,
+          source,
+          fetched: summary.fetched,
+          found: summary.found,
+          inserted: summary.inserted,
+          updated: summary.updated,
+          durationMs: summary.durationMs,
+        },
+        'run done',
       );
       return summary;
     } catch (err) {

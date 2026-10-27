@@ -34,6 +34,10 @@ export class QueueService implements OnModuleInit {
   }
 
   async onModuleInit() {
+    for (const q of this.allQueues()) {
+      // Without a listener, BullMQ/ioredis print connection errors raw to stderr (not JSON, no context).
+      q.on('error', (err: Error) => this.logger.warn({ queue: q.name, err: err.message }, 'queue connection error'));
+    }
     if (!this.drainOnBoot) return;
     for (const q of this.allQueues()) {
       await q.drain(); // removes waiting + delayed; active jobs finish or get stalled-retried

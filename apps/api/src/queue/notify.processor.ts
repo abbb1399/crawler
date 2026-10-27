@@ -19,7 +19,8 @@ export class NotifyProcessor extends WorkerHost {
   async process(job: Job<NotifyJobData>) {
     const result = await this.notifications.dispatchPending();
     this.logger.log(
-      `job ${job.id} (run=${job.data.runId ?? '-'}) delivered=${result.delivered} failed=${result.failed}`,
+      { jobId: job.id, runId: job.data.runId ?? null, delivered: result.delivered, failed: result.failed },
+      'notify job done',
     );
     if (result.failed > 0) {
       throw new Error(`${result.failed} notification(s) failed; will retry`);

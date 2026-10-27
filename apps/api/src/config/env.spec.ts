@@ -21,6 +21,13 @@ describe('validateEnv', () => {
     expect(env.SLACK_WEBHOOK_URL).toBeUndefined();
   });
 
+  it('defaults LOG_LEVEL by NODE_ENV and accepts an override', () => {
+    expect(validateEnv(minimal).LOG_LEVEL).toBe('debug');
+    expect(validateEnv({ ...minimal, NODE_ENV: 'production' }).LOG_LEVEL).toBe('info');
+    expect(validateEnv({ ...minimal, NODE_ENV: 'production', LOG_LEVEL: 'warn' }).LOG_LEVEL).toBe('warn');
+    expect(() => validateEnv({ ...minimal, LOG_LEVEL: 'loud' })).toThrow(/LOG_LEVEL/);
+  });
+
   it('coerces numbers and booleans from strings', () => {
     const env = validateEnv({ ...minimal, PORT: '4000', PW_HEADLESS: 'false', CRAWL_ON_BOOT: 'true', STALE_DAYS: '7' });
     expect(env).toMatchObject({ PORT: 4000, PW_HEADLESS: false, CRAWL_ON_BOOT: true, STALE_DAYS: 7 });

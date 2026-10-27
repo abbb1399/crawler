@@ -64,7 +64,7 @@ export class SchedulerService implements OnModuleInit {
         }
       }
     }
-    this.logger.log(`tick(${trigger}): enqueued ${n} crawl job(s)`);
+    this.logger.log({ trigger, enqueued: n }, 'scheduler tick');
     return n;
   }
 

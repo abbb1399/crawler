@@ -1,10 +1,12 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { pinoHttpOptions } from './common/logger.config';
 import { requestId } from './common/request-id.middleware';
-import { validateEnv } from './config/env';
+import { type Env, validateEnv } from './config/env';
 import { DocsModule } from './docs/docs.module';
 import { CrawlerModule } from './crawler/crawler.module';
 import { HealthController } from './health/health.controller';
@@ -23,6 +25,16 @@ import { QueueModule } from './queue/queue.module';
       // Resolved relative to process.cwd(); `pnpm dev` runs from apps/api.
       envFilePath: ['.env', '../../.env'],
       validate: validateEnv,
+    }),
+    // Structured JSON logs (pretty in dev); every line inside a request carries req.id.
+    LoggerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) => ({
+        pinoHttp: pinoHttpOptions({
+          NODE_ENV: config.get('NODE_ENV', { infer: true }),
+          LOG_LEVEL: config.get('LOG_LEVEL', { infer: true }),
+        }),
+      }),
     }),
     // Rate limit. The dashboard server is the only client (one IP), so these limits are shared by
     // everyone using the public dashboard — deliberate: this is a single-user app, and the point is

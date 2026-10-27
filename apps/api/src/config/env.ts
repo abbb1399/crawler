@@ -6,6 +6,8 @@ import { z } from 'zod';
  */
 export const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  /** pino level. Defaults to info in production, debug otherwise (filled in validateEnv). */
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional(),
   PORT: z.coerce.number().int().positive().default(3000),
   /** CORS origin for apps/web. */
   WEB_ORIGIN: z.string().url().default('http://localhost:3001'),
@@ -54,7 +56,8 @@ export const EnvSchema = z.object({
   NOTIFY_LOOKBACK_HOURS: z.coerce.number().int().min(1).default(24),
 });
 
-export type Env = z.infer<typeof EnvSchema>;
+type RawEnv = z.infer<typeof EnvSchema>;
+export type Env = Omit<RawEnv, 'LOG_LEVEL'> & { LOG_LEVEL: NonNullable<RawEnv['LOG_LEVEL']> };
 
 export function validateEnv(raw: Record<string, unknown>): Env {
   const result = EnvSchema.safeParse(raw);
@@ -64,5 +67,6 @@ export function validateEnv(raw: Record<string, unknown>): Env {
       .join('\n');
     throw new Error(`Invalid environment:\n${issues}`);
   }
-  return result.data;
+  const data = result.data;
+  return { ...data, LOG_LEVEL: data.LOG_LEVEL ?? (data.NODE_ENV === 'production' ? 'info' : 'debug') };
 }

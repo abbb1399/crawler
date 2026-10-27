@@ -20,6 +20,8 @@ main() {
   local compose=(docker compose -f docker-compose.prod.yml)
   "${compose[@]}" pull -q api web
   "${compose[@]}" up -d --no-build --remove-orphans
+  # Caddyfile is a bind mount: `up -d` does not restart caddy when only that file changed, so reload it.
+  "${compose[@]}" exec -T caddy caddy reload --config /etc/caddy/Caddyfile || echo "caddy reload failed (config unchanged?)" >&2
   docker image prune -f >/dev/null
   echo "deployed $(git rev-parse --short HEAD)"
 }

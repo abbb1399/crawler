@@ -1,9 +1,11 @@
-import { ClerkProvider, SignedIn, UserButton } from '@clerk/nextjs';
+import { ClerkProvider, Show, UserButton } from '@clerk/nextjs';
+import { shadcn } from '@clerk/ui/themes';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { TrawlerMark } from '@/components/trawler-mark';
 import { clerkEnabled } from '@/lib/clerk-enabled';
@@ -51,9 +53,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Button>
             {/* Sign-in is only asked for when a change button is pressed; signed-in owners get the account menu here. */}
             {clerkEnabled && (
-              <SignedIn>
-                <UserButton />
-              </SignedIn>
+              <Suspense>
+                <Show when="signed-in">
+                  <UserButton />
+                </Show>
+              </Suspense>
             )}
           </div>
         </header>
@@ -65,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col overflow-x-hidden">
-        {clerkEnabled ? <ClerkProvider>{shell}</ClerkProvider> : shell}
+        {clerkEnabled ? <ClerkProvider appearance={{ theme: shadcn }}>{shell}</ClerkProvider> : shell}
       </body>
     </html>
   );

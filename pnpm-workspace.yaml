@@ -12,3 +12,4 @@ allowBuilds:
   workerd: false
   msgpackr-extract: false
   unrs-resolver: false
+  core-js: false   # @clerk/ui dep; its postinstall only prints a funding notice

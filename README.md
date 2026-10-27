@@ -2,7 +2,7 @@
 
 키워드 기반으로 채용 공고를 수집해 DB에 쌓고 대시보드에서 봅니다. 새 공고 슬랙 알림은 코드만 있고 아직 연동 전입니다.
 
-**Live:** https://3-39-184-37.sslip.io  ·  AWS Lightsail(서울)에서 08~22시 2시간마다 수집. 
+**Live:** https://3-39-184-37.sslip.io  ·  AWS Lightsail(서울)에서 평일 08~22시 2시간마다 수집. 
 
 전체 구조와 설계 결정은 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), 배포 구성과 재배포 방법은 [deploy/README.md](deploy/README.md).
 
@@ -53,7 +53,7 @@ curl "localhost:3000/queues"                                  # 큐별 카운트
 ## 설정 (.env)
 
 ```
-CRAWL_CRON=*/30 * * * *        # 수집 주기. 운영은 0 8-22/2 * * *
+CRAWL_CRON=*/30 * * * *        # 수집 주기. 운영은 0 8-22/2 * * 1-5 (월~금)
 CRAWL_ON_BOOT=true             # 기동 직후 1회 실행 (개발용)
 LOG_LEVEL=info                 # 기본: production=info, 그 외=debug
 SLACK_WEBHOOK_URL=...          # 넣으면 새 공고 알림 (미연동, 아래 참고)

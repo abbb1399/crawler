@@ -20,7 +20,7 @@ api ─► postgres, redis   (Caddy 외에는 포트를 열지 않음)
 | 고정 IP | `trawler-ip` = 3.39.184.37 |
 | 도메인 / TLS | [sslip.io](https://sslip.io) (IP를 그대로 쓰는 와일드카드 DNS) + Caddy가 Let's Encrypt 인증서를 자동 발급·갱신 |
 | 방화벽 | 22/tcp (SSH, 키 인증만), 80/tcp, 443/tcp+udp. DB·Redis·API 포트는 외부에 열지 않음 |
-| 수집 주기 | 매일 08~22시 2시간마다 (KST, 하루 8회) |
+| 수집 주기 | 평일 08~22시 2시간마다 (KST, 하루 8회, 주말 없음) |
 | 서버 설정 | 스왑 2GB (크로미엄 + Next 빌드 대비), 타임존 Asia/Seoul, Docker 엔진 |
 | 배포 | `main` 푸시 → GitHub Actions(타입 체크 → 이미지 빌드 → GHCR → 서버 pull) 자동 배포 |
 | 인프라 생성 권한 | Lightsail 권한(`lightsail:*`)만 가진 전용 IAM 사용자로 CLI에서 생성 |
@@ -40,7 +40,7 @@ SITE_ADDRESS=<도메인 또는 1-2-3-4.sslip.io>
 BASIC_AUTH_USER=trawler
 BASIC_AUTH_HASH='<docker run --rm caddy:2 caddy hash-password --plaintext 비밀번호>'   # 작은따옴표 필수($ 포함)
 # 이하 선택. api 컨테이너로 그대로 전달됨
-CRAWL_CRON=0 8-22/2 * * *     # 08~22시 2시간마다(하루 8회). 새벽엔 공고가 거의 없어서 수집 안 함. 기본값은 30분마다
+CRAWL_CRON=0 8-22/2 * * 1-5   # 월~금 08~22시 2시간마다(주 40회). 주말·새벽엔 공고가 거의 없어서 수집 안 함. 기본값은 30분마다
 # SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 # 대시보드 변경 권한 (Clerk). 없으면 운영에서는 모든 변경이 거부된다(조회는 됨)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...

@@ -1,8 +1,9 @@
 import { SOURCE_LABEL, type Posting } from '@trawler/shared';
-import { Eye, EyeOff, Star } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import type { SearchParams } from 'nuqs/server';
 import { ActionForm } from '@/components/action-form';
+import { StarButton } from '@/components/star-button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -17,7 +18,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { api } from '@/lib/api';
-import { toggleHidden, toggleStar } from '@/lib/actions';
+import { toggleHidden } from '@/lib/actions';
 import { viewer } from '@/lib/auth';
 import { errorText } from '@/lib/flash';
 import { fmtDateTime, fmtDue } from '@/lib/format';
@@ -137,17 +138,7 @@ function PostingRow({ p, signedIn }: { p: Posting; signedIn: boolean }) {
   const due = fmtDue(p.dueDate);
   return (
     <li className="flex items-start gap-3 px-4 py-3">
-      <ActionForm
-        signedIn={signedIn}
-        action={toggleStar}
-        fields={{ id: p.id, starred: p.starred }}
-        variant="ghost"
-        size="icon-sm"
-        buttonClassName={p.starred ? 'text-yellow-500 hover:text-yellow-500' : 'text-muted-foreground/50 hover:text-yellow-500'}
-        title={p.starred ? '별표 해제' : '별표'}
-      >
-        <Star className={p.starred ? 'fill-current' : ''} />
-      </ActionForm>
+      <StarButton id={p.id} starred={p.starred} signedIn={signedIn} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           {p.isNew && (

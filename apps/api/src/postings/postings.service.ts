@@ -8,7 +8,7 @@ import type {
   PostingPatch,
   RawPosting,
 } from '@trawler/shared';
-import { startOfTodayKst } from '../common/time';
+import { kstDateString, startOfTodayKst } from '../common/time';
 import type { Env } from '../config/env';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -139,7 +139,8 @@ export class PostingsService {
    * Rows are never deleted; a posting that reappears is flipped back to ACTIVE by upsertMany.
    */
   async expireStale(now = new Date()): Promise<ExpireResult> {
-    const today = new Date(now.toISOString().slice(0, 10));
+    // dueDate is a calendar date in Korea; the 03:15 KST run is still yesterday in UTC.
+    const today = new Date(kstDateString(now));
     const staleBefore = new Date(now.getTime() - this.staleDays * 86_400_000);
 
     const byDueDate = await this.prisma.jobPosting.updateMany({

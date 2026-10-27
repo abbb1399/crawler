@@ -140,7 +140,8 @@ describe('hidden follows the repost family', () => {
 });
 
 describe('expireStale', () => {
-  const now = new Date('2026-10-26T03:00:00Z');
+  // When the nightly cron really runs: 03:15 KST on 10-26, which is still 10-25 in UTC.
+  const now = new Date('2026-10-25T18:15:00Z');
 
   it('expires past due dates and postings no crawl has seen for STALE_DAYS, leaves the rest', async () => {
     const dueYesterday = await seedPosting(prisma, rawPosting({ externalId: 'a', dueDate: '2026-10-25' }), { lastSeenAt: now });

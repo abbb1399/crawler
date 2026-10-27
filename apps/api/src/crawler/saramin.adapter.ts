@@ -84,7 +84,13 @@ export class SaraminAdapter implements SourceAdapter {
         throw new Error(`saramin: no result list on page ${pageNo} (blocked or layout changed)`);
       }
     }
-    return items.filter((i) => i.recIdx && i.title);
+    const valid = items.filter((i) => i.recIdx && i.title);
+    if (items.length > 0 && valid.length === 0) {
+      // The cards are there but their inner markup moved: without this it looks like a quiet 0-result run.
+      await this.browser.snapshot(page, 'saramin-emptyfields');
+      throw new Error(`saramin: ${items.length} result cards but none had an id and title (layout changed)`);
+    }
+    return valid;
   }
 
   private toRawPosting(item: SaraminItem): RawPosting {

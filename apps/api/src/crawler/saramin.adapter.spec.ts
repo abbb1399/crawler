@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { parseDueDate } from './saramin.adapter';
+import { describe, expect, it, vi } from 'vitest';
+import { stubConfig } from '../test/db';
+import type { BrowserService } from './browser.service';
+import { parseDueDate, SaraminAdapter } from './saramin.adapter';
+import type { SaraminItem } from './saramin.extract';
 
 // TZ is pinned to Asia/Seoul in vitest.config.ts, so "today" below is 2026-10-26.
 const now = new Date('2026-10-26T10:00:00+09:00');
@@ -30,5 +33,47 @@ describe('parseDueDate', () => {
     expect(parseDueDate('채용시', now)).toBeNull();
     expect(parseDueDate('상시채용', now)).toBeNull();
     expect(parseDueDate('', now)).toBeNull();
+  });
+});
+
+describe('SaraminAdapter.fetch', () => {
+  const card = (over: Partial<SaraminItem> = {}): SaraminItem => ({
+    recIdx: '123',
+    title: 'Node.js 백엔드',
+    company: '모던랩스',
+    location: '서울 강남구',
+    dateText: '~ 11/15(일)',
+    conditions: [],
+    sector: null,
+    registeredText: null,
+    ...over,
+  });
+
+  /** One result page with the given cards, behind a fake browser. */
+  function adapterWith(cards: SaraminItem[]) {
+    const page = {
+      goto: async () => ({ status: () => 200 }),
+      $$eval: async () => cards,
+      $: async () => ({}), // the result counter is present
+      close: async () => undefined,
+    };
+    const snapshot = vi.fn(async () => null);
+    const browser = {
+      withContext: (fn: (ctx: unknown) => Promise<unknown>) => fn({ newPage: async () => page }),
+      snapshot,
+    } as unknown as BrowserService;
+    return { adapter: new SaraminAdapter(browser, stubConfig({ SARAMIN_MAX_PAGES: 1 })), snapshot };
+  }
+
+  it('returns the cards that have an id and a title', async () => {
+    const { adapter } = adapterWith([card(), card({ recIdx: '', title: '' })]);
+    const out = await adapter.fetch('node');
+    expect(out.map((p) => p.externalId)).toEqual(['123']);
+  });
+
+  it('fails when cards exist but none could be read (inner markup changed)', async () => {
+    const { adapter, snapshot } = adapterWith([card({ recIdx: '', title: '' }), card({ title: '' })]);
+    await expect(adapter.fetch('node')).rejects.toThrow(/layout changed/);
+    expect(snapshot).toHaveBeenCalledWith(expect.anything(), 'saramin-emptyfields');
   });
 });

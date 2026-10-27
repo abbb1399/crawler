@@ -30,6 +30,7 @@ type Search = Awaited<ReturnType<typeof loadPostingsSearchParams>>;
 
 export default async function PostingsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const sp = await loadPostingsSearchParams(searchParams);
+  const error = errorText(sp.error);
   const filters = {
     source: sp.source ?? undefined,
     q: sp.q || undefined,
@@ -70,9 +71,9 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
 
       <PostingsFilters />
 
-      {errorText(sp.error) && (
+      {error && (
         <Alert variant="destructive">
-          <AlertDescription>{errorText(sp.error)}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

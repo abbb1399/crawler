@@ -29,13 +29,24 @@ export function classify(exception: unknown): Classified {
   }
   if (exception instanceof Prisma.PrismaClientKnownRequestError) {
     if (exception.code === 'P2002') {
-      const target = exception.meta?.['target'];
+      const target = exception.meta?.['target'] ?? uniqueIndexFields(exception.meta);
       const fields = Array.isArray(target) ? target.join(', ') : typeof target === 'string' ? target : '';
       return { status: HttpStatus.CONFLICT, message: fields ? `이미 존재합니다: ${fields}` : '이미 존재합니다' };
     }
     if (exception.code === 'P2025') return { status: HttpStatus.NOT_FOUND, message: '대상을 찾을 수 없습니다' };
   }
   return { status: HttpStatus.INTERNAL_SERVER_ERROR, message: '내부 오류가 발생했습니다' };
+}
+
+/**
+ * Prisma 7 with a driver adapter sends no `target`, only the violated index, e.g. "SearchProfile_name_key".
+ * Prisma names unique indexes `{Model}_{fields}_key`, so the fields are what is left between the two.
+ */
+function uniqueIndexFields(meta: Record<string, unknown> | undefined): string | undefined {
+  const cause = (meta?.['driverAdapterError'] as { cause?: { table?: string; constraint?: { index?: string } } } | undefined)?.cause;
+  const index = cause?.constraint?.index;
+  if (!index || !cause?.table || !index.startsWith(`${cause.table}_`) || !index.endsWith('_key')) return undefined;
+  return index.slice(cause.table.length + 1, -'_key'.length);
 }
 
 /** "NOT_FOUND" → "Not Found" */

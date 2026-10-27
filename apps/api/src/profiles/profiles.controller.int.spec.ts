@@ -35,6 +35,8 @@ describe('ProfilesController', () => {
     const other = await ctl.create(input('frontend'));
     expect(await statusOf(ctl.create(input('backend')))).toBe(409);
     expect(await statusOf(ctl.update(other.id, { name: 'backend' }))).toBe(409);
+    const err = await ctl.create(input('backend')).then(() => null, (e: unknown) => e);
+    expect(classify(err).message).toBe('이미 존재합니다: name');
   });
 
   it('answers 404 for a missing profile on get, update and delete', async () => {

@@ -45,9 +45,22 @@ describe('classify', () => {
     const dup = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
       code: 'P2002',
       clientVersion: 'test',
-      meta: { target: ['name'] },
+      // What Prisma 7 with the pg driver adapter really sends (no `target`).
+      meta: {
+        modelName: 'SearchProfile',
+        driverAdapterError: {
+          name: 'DriverAdapterError',
+          cause: { kind: 'UniqueConstraintViolation', constraint: { index: 'SearchProfile_name_key' }, table: 'SearchProfile' },
+        },
+      },
     });
     expect(classify(dup)).toEqual({ status: 409, message: '이미 존재합니다: name' });
+    const legacy = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: 'test',
+      meta: { target: ['source', 'externalId'] },
+    });
+    expect(classify(legacy)).toEqual({ status: 409, message: '이미 존재합니다: source, externalId' });
     const missing = new Prisma.PrismaClientKnownRequestError('Record not found', { code: 'P2025', clientVersion: 'test' });
     expect(classify(missing)).toEqual({ status: 404, message: '대상을 찾을 수 없습니다' });
   });

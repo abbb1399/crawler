@@ -4,7 +4,7 @@
 
 **Live:** https://3-39-184-37.sslip.io  ·  AWS Lightsail(서울)에서 08~22시 2시간마다 수집. 
 
-배포 구성과 재배포 방법은 [deploy/README.md](deploy/README.md).
+전체 구조와 설계 결정은 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), 배포 구성과 재배포 방법은 [deploy/README.md](deploy/README.md).
 
 ## 구조
 

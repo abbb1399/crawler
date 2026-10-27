@@ -7,6 +7,7 @@ import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Suspense } from 'react';
+import { MainNav } from '@/components/main-nav';
 import { Button } from '@/components/ui/button';
 import { SignInToAct } from '@/components/sign-in-to-act';
 import { TrawlerMark } from '@/components/trawler-mark';
@@ -20,12 +21,6 @@ export const metadata: Metadata = {
   title: 'trawler · 공고 수집기',
   description: '원티드/사람인 채용 공고 수집 대시보드',
 };
-
-const NAV = [
-  { href: '/', label: '공고' },
-  { href: '/profiles', label: '검색 프로필' },
-  { href: '/runs', label: '실행 이력' },
-];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const bullBoard = (
@@ -48,13 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <TrawlerMark className="size-5 text-teal-700 dark:text-teal-400" />
               trawler
             </Link>
-            <nav className="flex flex-wrap gap-1">
-              {NAV.map((n) => (
-                <Button key={n.href} asChild variant="ghost" size="sm" className="text-muted-foreground">
-                  <Link href={n.href}>{n.label}</Link>
-                </Button>
-              ))}
-            </nav>
+            <MainNav />
             <div className="ml-auto flex items-center gap-2">
               {/* Bull Board is an operator tool: shown only to a signed-in user. Signed-out visitors get a
                   sign-in button here (the change buttons in the lists also open the same modal). */}

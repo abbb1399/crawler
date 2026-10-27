@@ -2,7 +2,9 @@
 
 키워드 기반으로 채용 공고를 수집해 DB에 쌓고 대시보드에서 봅니다. 새 공고 슬랙 알림은 코드만 있고 아직 연동 전입니다.
 
-**Live:** https://3-39-184-37.sslip.io  ·  AWS Lightsail(서울)에서 08~22시 2시간마다 수집. 배포 구성과 재배포 방법은 [deploy/README.md](deploy/README.md).
+**Live:** https://3-39-184-37.sslip.io  ·  AWS Lightsail(서울)에서 08~22시 2시간마다 수집. 
+
+배포 구성과 재배포 방법은 [deploy/README.md](deploy/README.md).
 
 ## 구조
 

@@ -137,12 +137,12 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
 function PostingRow({ p, signedIn }: { p: Posting; signedIn: boolean }) {
   const due = fmtDue(p.dueDate);
   return (
-    <li className="flex items-start gap-3 px-4 py-3">
+    <li className="flex items-start gap-3 px-4 py-4 transition-colors hover:bg-muted/40 sm:px-5">
       <StarButton id={p.id} starred={p.starred} signedIn={signedIn} />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="flex min-w-0 items-center gap-2">
           {p.isNew && (
-            <Badge className="px-1.5 py-0 text-[10px]" title="오늘 처음 수집된 공고">
+            <Badge className="shrink-0 px-1.5 py-0 text-[10px]" title="오늘 처음 수집된 공고">
               NEW
             </Badge>
           )}
@@ -151,30 +151,59 @@ function PostingRow({ p, signedIn }: { p: Posting; signedIn: boolean }) {
             href={p.url}
             target="_blank"
             rel="noreferrer"
-            className="min-w-0 truncate font-medium hover:underline visited:text-muted-foreground"
+            className="min-w-0 truncate text-[15px] leading-snug font-semibold hover:underline visited:text-muted-foreground"
           >
             {p.title}
           </a>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <Badge variant="secondary">{SOURCE_LABEL[p.source]}</Badge>
-          <span className="max-w-full truncate text-foreground">{p.company}</span>
-          {p.location && <span className="max-w-full truncate">{p.location}</span>}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground sm:gap-x-1.5">
+          <Badge variant="outline" className="mr-0.5 font-normal">
+            {SOURCE_LABEL[p.source]}
+          </Badge>
+          <span className="max-w-full truncate font-medium text-foreground/80">{p.company}</span>
+          {p.location && (
+            <>
+              <Dot />
+              <span className="max-w-full truncate">{p.location}</span>
+            </>
+          )}
+          <Dot />
           <span className={due.urgent ? 'font-medium text-destructive' : ''}>마감 {due.label}</span>
+          <Dot />
           <span>수집 {fmtDateTime(p.firstSeenAt)}</span>
-          {p.status === 'EXPIRED' && <Badge variant="outline">만료</Badge>}
+          {p.status === 'EXPIRED' && (
+            <Badge variant="outline" className="ml-1">
+              만료
+            </Badge>
+          )}
           {p.repostOfId !== null && (
-            <Badge variant="outline" title={`#${p.repostOfId} 재게시로 판단, 알림 생략`}>
+            <Badge variant="outline" className="ml-1" title={`#${p.repostOfId} 재게시로 판단, 알림 생략`}>
               재게시
             </Badge>
           )}
         </div>
       </div>
-      <ActionForm signedIn={signedIn} action={toggleHidden} fields={{ id: p.id, hidden: p.hidden }} variant="outline" size="xs">
+      <ActionForm
+        signedIn={signedIn}
+        action={toggleHidden}
+        fields={{ id: p.id, hidden: p.hidden }}
+        variant="ghost"
+        size="xs"
+        buttonClassName="text-muted-foreground"
+      >
         {p.hidden ? <Eye data-icon="inline-start" /> : <EyeOff data-icon="inline-start" />}
         {p.hidden ? '숨김 해제' : '숨김'}
       </ActionForm>
     </li>
+  );
+}
+
+function Dot() {
+  return (
+    // Only where the meta line fits on one row: on phones it wraps and a dot would dangle at a line edge.
+    <span aria-hidden className="hidden text-muted-foreground/50 sm:inline">
+      ·
+    </span>
   );
 }
 

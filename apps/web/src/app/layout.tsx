@@ -1,3 +1,4 @@
+import { koKR } from '@clerk/localizations';
 import { ClerkProvider, Show, UserButton } from '@clerk/nextjs';
 import { shadcn } from '@clerk/ui/themes';
 import type { Metadata } from 'next';
@@ -7,6 +8,7 @@ import Link from 'next/link';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
+import { SignInToAct } from '@/components/sign-in-to-act';
 import { TrawlerMark } from '@/components/trawler-mark';
 import { clerkEnabled } from '@/lib/clerk-enabled';
 import './globals.css';
@@ -26,6 +28,17 @@ const NAV = [
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const bullBoard = (
+    <Button asChild variant="link" size="sm" className="text-muted-foreground">
+      <a
+        href={`${process.env.NEXT_PUBLIC_BULL_BOARD_URL ?? 'http://localhost:3000/admin/queues'}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Bull Board <ExternalLink data-icon="inline-end" />
+      </a>
+    </Button>
+  );
   const shell = (
     <>
         <header className="border-b bg-card">
@@ -42,23 +55,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Button>
               ))}
             </nav>
-            <Button asChild variant="link" size="sm" className="ml-auto text-muted-foreground">
-              <a
-                href={`${process.env.NEXT_PUBLIC_BULL_BOARD_URL ?? 'http://localhost:3000/admin/queues'}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Bull Board <ExternalLink data-icon="inline-end" />
-              </a>
-            </Button>
-            {/* Sign-in is only asked for when a change button is pressed; signed-in owners get the account menu here. */}
-            {clerkEnabled && (
-              <Suspense>
-                <Show when="signed-in">
-                  <UserButton />
-                </Show>
-              </Suspense>
-            )}
+            <div className="ml-auto flex items-center gap-2">
+              {/* Bull Board is an operator tool: shown only to a signed-in user. Signed-out visitors get a
+                  sign-in button here (the change buttons in the lists also open the same modal). */}
+              {clerkEnabled ? (
+                <Suspense>
+                  <Show when="signed-in">
+                    {bullBoard}
+                    <UserButton />
+                  </Show>
+                  <Show when="signed-out">
+                    <SignInToAct variant="outline" size="sm" title="로그인">
+                      로그인
+                    </SignInToAct>
+                  </Show>
+                </Suspense>
+              ) : (
+                bullBoard
+              )}
+            </div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
@@ -69,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col overflow-x-hidden">
-        {clerkEnabled ? <ClerkProvider appearance={{ theme: shadcn }}>{shell}</ClerkProvider> : shell}
+        {clerkEnabled ? <ClerkProvider localization={koKR} appearance={{ theme: shadcn }}>{shell}</ClerkProvider> : shell}
       </body>
     </html>
   );

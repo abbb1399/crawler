@@ -102,7 +102,8 @@ export async function crawlNow(formData: FormData) {
   await requireOwner('/profiles');
   const id = num(formData.get('id'));
   const jobs = await api.enqueueCrawl(id);
+  const running = jobs.filter((j) => j.deduplicated).length;
   revalidatePath('/profiles');
   revalidatePath('/runs');
-  redirect(`/profiles?queued=${jobs.length}`);
+  redirect(`/profiles?queued=${jobs.length - running}&running=${running}`);
 }

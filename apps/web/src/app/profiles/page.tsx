@@ -18,9 +18,9 @@ export const dynamic = 'force-dynamic';
 export default async function ProfilesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ queued?: string; error?: string }>;
+  searchParams: Promise<{ queued?: string; running?: string; error?: string }>;
 }) {
-  const [{ queued, error: code }, profiles, { signedIn }] = await Promise.all([searchParams, api.profiles(), viewer()]);
+  const [{ queued, running, error: code }, profiles, { signedIn }] = await Promise.all([searchParams, api.profiles(), viewer()]);
   const error = errorText(code);
 
   return (
@@ -45,10 +45,12 @@ export default async function ProfilesPage({
         </Alert>
       )}
 
-      {queued && (
+      {(Number(queued) > 0 || Number(running) > 0) && (
         <Alert>
           <AlertDescription>
-            크롤 잡 {queued}개를 큐에 넣었습니다. 결과는{' '}
+            {Number(queued) > 0 && `크롤 잡 ${Number(queued)}개를 큐에 넣었습니다. `}
+            {Number(running) > 0 && `${Number(running)}개는 이미 수집 중이라 건너뛰었습니다. `}
+            결과는{' '}
             <Link href="/runs" className="underline">
               실행 이력
             </Link>

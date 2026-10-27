@@ -51,18 +51,22 @@ export class QueueService implements OnModuleInit {
   ): Promise<EnqueueResult> {
     const queue = this.crawlQueues.get(source);
     if (!queue) throw new Error(`No crawl queue for source ${source}`);
+    const jobId = crawlJobId(source, profileId);
+    // While a crawl of this profile+source is waiting or running, BullMQ drops the new job and hands back
+    // the existing one, so a repeated click or a cron tick landing mid-crawl does not queue a second run.
     const job = await queue.add(
       'crawl',
       { source, profileId, trigger },
-      { jobId: crawlJobId(source, profileId) },
+      { jobId, deduplication: { id: `${source.toLowerCase()}-${profileId}` } },
     );
-    return { queue: queue.name, jobId: String(job.id) };
+    // shortcut: a repeat within the same minute reuses the same jobId and so reads as not deduplicated; harmless.
+    return { queue: queue.name, jobId: String(job.id), deduplicated: job.id !== jobId };
   }
 
   /** Multiple notify jobs are harmless: concurrency is 1 and a run with nothing pending is a no-op. */
   async enqueueNotify(data: NotifyJobData = {}): Promise<EnqueueResult> {
     const job = await this.notifyQueue.add('dispatch', data);
-    return { queue: this.notifyQueue.name, jobId: String(job.id) };
+    return { queue: this.notifyQueue.name, jobId: String(job.id), deduplicated: false };
   }
 
   async counts() {

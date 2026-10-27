@@ -71,6 +71,8 @@ export type CrawlSummary = z.infer<typeof CrawlSummary>;
 export const EnqueueResult = z.object({
   queue: z.string(),
   jobId: z.string(),
+  /** A crawl of the same profile and source was already waiting or running; nothing new was queued. */
+  deduplicated: z.boolean(),
 });
 export type EnqueueResult = z.infer<typeof EnqueueResult>;
 

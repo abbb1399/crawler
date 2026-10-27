@@ -1,5 +1,6 @@
 import { REGION_LABEL, SOURCE_LABEL } from '@trawler/shared';
 import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
+import { cn } from 'cn';
 import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -67,8 +68,8 @@ export default async function ProfilesPage({
         <ul className="grid gap-4 md:grid-cols-2">
           {profiles.map((p) => (
             <li key={p.id}>
-              <Card className={p.enabled ? '' : 'opacity-60'}>
-                <CardHeader>
+              <Card className={cn('[--card-spacing:--spacing(6)]', !p.enabled && 'opacity-60')}>
+                <CardHeader className="gap-2">
                   <CardTitle>
                     {p.name} <span className="text-xs font-normal text-muted-foreground">#{p.id}</span>
                   </CardTitle>
@@ -90,7 +91,7 @@ export default async function ProfilesPage({
                 </CardHeader>
 
                 <CardContent>
-                  <dl className="space-y-1.5 text-sm">
+                  <dl className="space-y-3 text-sm">
                     <Row label="키워드" items={p.keywords} />
                     <Row label="제목 포함" items={p.includeTitle} empty="(제한 없음)" />
                     <Row label="제목 제외" items={p.excludeTitle} empty="(없음)" />
@@ -121,8 +122,8 @@ export default async function ProfilesPage({
 function Row({ label, items, empty }: { label: string; items: string[]; empty?: string }) {
   return (
     <div className="flex gap-2">
-      <dt className="w-16 shrink-0 text-muted-foreground">{label}</dt>
-      <dd className="flex flex-wrap gap-1">
+      <dt className="w-16 shrink-0 pt-0.5 text-muted-foreground">{label}</dt>
+      <dd className="flex flex-wrap gap-1.5">
         {items.length === 0 ? (
           <span className="text-muted-foreground">{empty}</span>
         ) : (

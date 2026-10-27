@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type {
   ExpireResult,
+  Posting,
   PostingList,
   PostingListQuery,
   PostingPatch,
@@ -192,7 +193,7 @@ export class PostingsService {
    * `hidden` applies to the whole repost family (the original plus every posting flagged as its
    * repost), whichever member was clicked; `starred` stays on the single row.
    */
-  async patch(id: number, patch: PostingPatch) {
+  async patch(id: number, patch: PostingPatch): Promise<Posting> {
     const exists = await this.prisma.jobPosting.findUnique({ where: { id }, select: { id: true, repostOfId: true } });
     if (!exists) throw new NotFoundException(`posting ${id} not found`);
     const row = await this.prisma.$transaction(async (tx) => {
@@ -212,7 +213,7 @@ export class PostingsService {
 
 type ListRow = Prisma.JobPostingGetPayload<{ select: typeof LIST_SELECT }>;
 
-function serialize(r: ListRow, todayStart: Date) {
+function serialize(r: ListRow, todayStart: Date): Posting {
   return {
     ...r,
     isNew: r.firstSeenAt >= todayStart,

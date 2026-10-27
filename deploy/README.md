@@ -74,6 +74,10 @@ deploy  서버에 SSH → deploy/server-deploy.sh 실행 → 사이트 200 확�
 - 롤백: 서버에서 `IMAGE_TAG=<커밋 sha> docker compose -f docker-compose.prod.yml up -d`.
 - 수동 배포(서버에서 직접 빌드): `scripts/deploy.sh ubuntu@<서버 IP>`. Actions가 막혔을 때만 쓴다.
 
+## API 문서
+
+Caddy가 `/docs*`와 `/openapi.json`을 api 컨테이너로 넘긴다(공개, 읽기 전용). https://3-39-184-37.sslip.io/docs
+
 ## 운영 명령 (서버에서, `cd ~/trawler`)
 
 ```bash

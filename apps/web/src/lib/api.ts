@@ -1,6 +1,7 @@
 import type {
   CrawlRun,
   EnqueueResult,
+  ErrorBody,
   Posting,
   PostingList,
   PostingPatch,
@@ -13,10 +14,11 @@ import type {
 /** Server-side only. The browser never talks to the API directly; mutations go through server actions. */
 const API_URL = process.env.API_URL ?? 'http://localhost:3000';
 
+/** Non-2xx response. `body` is the API's ErrorBody when it sent JSON (always, except network-level failures). */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
-    readonly body: unknown,
+    readonly body: ErrorBody | null,
     message: string,
   ) {
     super(message);
@@ -30,10 +32,8 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    const msg =
-      (body && typeof body === 'object' && 'message' in body && String((body as { message: unknown }).message)) ||
-      `${res.status} ${res.statusText}`;
+    const body = (await res.json().catch(() => null)) as ErrorBody | null;
+    const msg = (body && typeof body.message === 'string' && body.message) || `${res.status} ${res.statusText}`;
     throw new ApiError(res.status, body, msg);
   }
   return (await res.json()) as T;

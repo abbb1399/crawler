@@ -66,6 +66,37 @@ export const EnqueueResult = z.object({
 });
 export type EnqueueResult = z.infer<typeof EnqueueResult>;
 
+/** Query for POST /crawl and POST /crawl/:source[/sync]. */
+export const CrawlTriggerQuery = z.object({
+  profileId: z.coerce.number().int().positive().default(1),
+});
+export type CrawlTriggerQuery = z.infer<typeof CrawlTriggerQuery>;
+
+export const NotifyChannel = z.enum(['SLACK', 'TELEGRAM']);
+export type NotifyChannel = z.infer<typeof NotifyChannel>;
+
+/** Result of a notification pass (POST /maintenance/notify, and inside CrawlSyncResult). */
+export const DispatchResult = z.object({
+  delivered: z.number(),
+  /** Postings whose batch failed on some channel; they stay pending for the next attempt. */
+  failed: z.number(),
+});
+export type DispatchResult = z.infer<typeof DispatchResult>;
+
+/** POST /crawl/:source/sync: the crawl summary plus the notification pass it triggered (null when nothing was new). */
+export const CrawlSyncResult = CrawlSummary.extend({ notify: DispatchResult.nullable() });
+export type CrawlSyncResult = z.infer<typeof CrawlSyncResult>;
+
+export const TestAlertResult = z.object({
+  sent: z.boolean(),
+  channels: z.array(NotifyChannel),
+});
+export type TestAlertResult = z.infer<typeof TestAlertResult>;
+
+/** BullMQ job counts per queue: { "crawl-wanted": { waiting, active, delayed, completed, failed }, ... } */
+export const QueueCounts = z.record(z.string(), z.record(z.string(), z.number()));
+export type QueueCounts = z.infer<typeof QueueCounts>;
+
 // ---------------------------------------------------------------------------
 // Read API (consumed by apps/web)
 // ---------------------------------------------------------------------------
@@ -184,11 +215,21 @@ export const CrawlRun = z.object({
 });
 export type CrawlRun = z.infer<typeof CrawlRun>;
 
+/** Query for GET /runs. */
+export const RunsQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  source: JobSource.optional(),
+});
+export type RunsQuery = z.infer<typeof RunsQuery>;
+
 export const ExpireResult = z.object({
   byDueDate: z.number(),
   byStale: z.number(),
 });
 export type ExpireResult = z.infer<typeof ExpireResult>;
+
+export const DeleteResult = z.object({ deleted: z.number() });
+export type DeleteResult = z.infer<typeof DeleteResult>;
 
 export const Stats = z.object({
   postings: z.object({
@@ -201,6 +242,30 @@ export const Stats = z.object({
     bySource: z.array(z.object({ source: JobSource, count: z.number() })),
   }),
   lastRunAt: z.string().nullable(),
-  queues: z.record(z.string(), z.record(z.string(), z.number())),
+  queues: QueueCounts,
 });
 export type Stats = z.infer<typeof Stats>;
+
+// ---------------------------------------------------------------------------
+// Errors — every non-2xx response from the API has this shape (AllExceptionsFilter)
+// ---------------------------------------------------------------------------
+
+export const ErrorIssue = z.object({
+  /** Dotted path into the request body/query, e.g. "keywords.0". */
+  path: z.string(),
+  message: z.string(),
+});
+
+export const ErrorBody = z.object({
+  statusCode: z.number(),
+  /** HTTP reason phrase, e.g. "Not Found". */
+  error: z.string(),
+  message: z.string(),
+  /** Present for 400 validation failures only. */
+  issues: z.array(ErrorIssue).optional(),
+  /** Echo of the x-request-id header (generated when the caller sent none); also returned as a response header. */
+  requestId: z.string(),
+  path: z.string(),
+  timestamp: z.string(),
+});
+export type ErrorBody = z.infer<typeof ErrorBody>;

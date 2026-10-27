@@ -1,8 +1,11 @@
-import { Module } from '@nestjs/common';
+import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { requestId } from './common/request-id.middleware';
 import { validateEnv } from './config/env';
+import { DocsModule } from './docs/docs.module';
 import { CrawlerModule } from './crawler/crawler.module';
 import { HealthController } from './health/health.controller';
 import { NotifierModule } from './notifier/notifier.module';
@@ -31,8 +34,16 @@ import { QueueModule } from './queue/queue.module';
     NotifierModule,
     CrawlerModule,
     QueueModule.register(),
+    DocsModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(requestId).forRoutes('{*splat}');
+  }
+}

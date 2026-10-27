@@ -1,5 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { JobSource } from '@trawler/shared';
+import { type CrawlRun, RunsQuery } from '@trawler/shared';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Read-only lookups. Crawl triggers live in queue/crawl.controller.ts. */
@@ -7,16 +8,19 @@ import { PrismaService } from '../prisma/prisma.service';
 export class CrawlerController {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** GET /runs?limit=&source= */
+  /** GET /runs?limit=&source= — newest first. */
   @Get('runs')
-  runs(@Query('limit') limit?: string, @Query('source') source?: string) {
-    const n = Math.min(Math.max(Number(limit) || 20, 1), 100);
-    const parsed = source ? JobSource.safeParse(source.toUpperCase()) : undefined;
-    return this.prisma.crawlRun.findMany({
-      where: parsed?.success ? { source: parsed.data } : undefined,
+  async runs(@Query(new ZodValidationPipe(RunsQuery)) q: RunsQuery): Promise<CrawlRun[]> {
+    const rows = await this.prisma.crawlRun.findMany({
+      where: q.source ? { source: q.source } : undefined,
       orderBy: { id: 'desc' },
-      take: n,
+      take: q.limit,
       include: { profile: { select: { name: true } } },
     });
+    return rows.map((r) => ({
+      ...r,
+      startedAt: r.startedAt.toISOString(),
+      finishedAt: r.finishedAt ? r.finishedAt.toISOString() : null,
+    }));
   }
 }

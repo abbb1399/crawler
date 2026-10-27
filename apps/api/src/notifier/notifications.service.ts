@@ -1,17 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { DispatchResult } from '@trawler/shared';
 import type { Env } from '../config/env';
 import type { NotifyChannel } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { NOTIFIERS, type NotifiablePosting, type Notifier } from './notifier';
 
 export const BATCH_SIZE = 10;
-
-export interface DispatchResult {
-  delivered: number;
-  /** Postings whose batch failed on some channel; they stay pending for the next attempt. */
-  failed: number;
-}
 
 /**
  * Finds postings that have not been announced on each enabled channel and sends them.

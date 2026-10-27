@@ -61,6 +61,11 @@ SLACK_WEBHOOK_URL=...          # 넣으면 새 공고 알림 (미연동, 아래 
 - 제목 필터: 사이트 검색이 느슨해서 `SearchProfile.includeTitle`(하나라도 포함) / `excludeTitle`(포함 시 제외)로 걸러서 저장합니다. 둘 다 비우면 전부 저장.
 - 지역: `SearchProfile.regions`(서울/경기/인천, 비우면 전국)로 사이트 검색 자체를 좁힙니다. 사람인은 지역 필터가 느슨해서 위치 문자열로 한 번 더 거릅니다.
 
+## API 문서 · 오류 형식
+
+- `/docs`에 Scalar UI, `/openapi.json`에 OpenAPI 3.1 문서. `packages/shared`의 zod 스키마에서 `zod-openapi`로 생성하므로 코드와 문서가 같은 계약을 본다(`apps/api/src/docs/openapi.ts`). 운영: https://3-39-184-37.sslip.io/docs
+- 모든 오류 응답은 `ErrorBody` 한 형식: `{ statusCode, error, message, issues?, requestId, path, timestamp }`. 검증 실패(400)는 `issues[]`, Prisma unique/not-found는 409/404, 그 외는 500에 일반 메시지(상세는 서버 로그에 `requestId`와 함께). 요청마다 `x-request-id` 헤더를 돌려준다.
+
 ## 큐 (BullMQ)
 
 ```

@@ -9,6 +9,13 @@
 		}
 		reverse_proxy api:3000
 	}
+	# Public, read-only API reference (Scalar UI + the OpenAPI document).
+	handle /docs* {
+		reverse_proxy api:3000
+	}
+	handle /openapi.json {
+		reverse_proxy api:3000
+	}
 	handle {
 		reverse_proxy web:3001
 	}

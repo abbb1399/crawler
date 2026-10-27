@@ -1,7 +1,18 @@
-import { BadRequestException, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { JobSource, type EnqueueResult, type ExpireResult, type Stats } from '@trawler/shared';
+import {
+  type CrawlSyncResult,
+  CrawlTriggerQuery,
+  type DispatchResult,
+  type EnqueueResult,
+  type ExpireResult,
+  JobSource,
+  type QueueCounts,
+  type Stats,
+  type TestAlertResult,
+} from '@trawler/shared';
 import { startOfTodayKst } from '../common/time';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { CrawlerService } from '../crawler/crawler.service';
 import { NotificationsService } from '../notifier/notifications.service';
 import { PostingsService } from '../postings/postings.service';
@@ -10,6 +21,8 @@ import { QueueService } from './queue.service';
 
 /** Crawls and maintenance passes are expensive (Playwright, full-table updates): 10/min on top of the global limit. */
 const EXPENSIVE = { default: { limit: 10, ttl: 60_000 } };
+
+const TriggerQuery = new ZodValidationPipe(CrawlTriggerQuery);
 
 @Controller()
 export class CrawlController {
@@ -24,25 +37,24 @@ export class CrawlController {
   /** Enqueue a crawl: POST /crawl/wanted?profileId=1 → { queue, jobId } */
   @Post('crawl/:source')
   @Throttle(EXPENSIVE)
-  enqueue(@Param('source') sourceParam: string, @Query('profileId') profileIdParam?: string) {
-    const { source, profileId } = parse(sourceParam, profileIdParam);
+  enqueue(@Param('source') sourceParam: string, @Query(TriggerQuery) q: CrawlTriggerQuery): Promise<EnqueueResult> {
+    const source = parseSource(sourceParam);
     if (!this.queues.hasQueue(source)) {
       throw new BadRequestException(`source ${source} has no crawl queue yet`);
     }
-    return this.queues.enqueueCrawl(source, profileId, 'manual');
+    return this.queues.enqueueCrawl(source, q.profileId, 'manual');
   }
 
   /** Enqueue every source of one profile: POST /crawl?profileId=1 */
   @Post('crawl')
   @Throttle(EXPENSIVE)
-  async enqueueAll(@Query('profileId') profileIdParam?: string) {
-    const profileId = parseProfileId(profileIdParam);
-    const profile = await this.prisma.searchProfile.findUnique({ where: { id: profileId } });
-    if (!profile) throw new BadRequestException(`profile ${profileId} not found`);
+  async enqueueAll(@Query(TriggerQuery) q: CrawlTriggerQuery): Promise<EnqueueResult[]> {
+    const profile = await this.prisma.searchProfile.findUnique({ where: { id: q.profileId } });
+    if (!profile) throw new NotFoundException(`profile ${q.profileId} not found`);
     const results: EnqueueResult[] = [];
     for (const source of profile.sources) {
       if (this.queues.hasQueue(source)) {
-        results.push(await this.queues.enqueueCrawl(source, profileId, 'manual'));
+        results.push(await this.queues.enqueueCrawl(source, q.profileId, 'manual'));
       }
     }
     return results;
@@ -51,9 +63,9 @@ export class CrawlController {
   /** Run inline and wait for the result. Debugging aid; bypasses the queue. */
   @Post('crawl/:source/sync')
   @Throttle(EXPENSIVE)
-  async runSync(@Param('source') sourceParam: string, @Query('profileId') profileIdParam?: string) {
-    const { source, profileId } = parse(sourceParam, profileIdParam);
-    const summary = await this.crawler.run(source, profileId);
+  async runSync(@Param('source') sourceParam: string, @Query(TriggerQuery) q: CrawlTriggerQuery): Promise<CrawlSyncResult> {
+    const source = parseSource(sourceParam);
+    const summary = await this.crawler.run(source, q.profileId);
     const notify = summary.inserted > 0 ? await this.notifications.dispatchPending() : null;
     return { ...summary, notify };
   }
@@ -68,20 +80,20 @@ export class CrawlController {
   /** Re-dispatch anything still pending (normally the notify queue does this after a crawl). */
   @Post('maintenance/notify')
   @Throttle(EXPENSIVE)
-  notify() {
+  notify(): Promise<DispatchResult> {
     return this.notifications.dispatchPending();
   }
 
   /** Sends a test alert through every enabled channel. */
   @Post('maintenance/test-alert')
   @Throttle(EXPENSIVE)
-  async testAlert() {
+  async testAlert(): Promise<TestAlertResult> {
     const sent = await this.notifications.alert(`test:${Date.now()}`, '테스트 경고입니다. 알림 채널이 동작합니다.');
     return { sent, channels: this.notifications.enabledChannels() };
   }
 
   @Get('queues')
-  counts() {
+  counts(): Promise<QueueCounts> {
     return this.queues.counts();
   }
 
@@ -112,18 +124,10 @@ export class CrawlController {
   }
 }
 
-function parse(sourceParam: string, profileIdParam?: string) {
-  const source = JobSource.safeParse(sourceParam.toUpperCase());
+function parseSource(raw: string): JobSource {
+  const source = JobSource.safeParse(raw.toUpperCase());
   if (!source.success) {
     throw new BadRequestException(`source must be one of ${JobSource.options.join(', ')}`);
   }
-  return { source: source.data, profileId: parseProfileId(profileIdParam) };
-}
-
-function parseProfileId(raw?: string) {
-  const profileId = Number(raw ?? 1);
-  if (!Number.isInteger(profileId) || profileId <= 0) {
-    throw new BadRequestException('profileId must be a positive integer');
-  }
-  return profileId;
+  return source.data;
 }

@@ -46,6 +46,13 @@ services:
       REDIS_HOST: redis
     # Chromium needs more shared memory than Docker's 64MB default.
     ipc: host
+    # /health is 503 when Postgres or Redis is unreachable (see apps/api/src/health). Node 22 has fetch.
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     volumes:
       - apidata:/app/apps/api/.data
       - apistorage:/app/apps/api/storage

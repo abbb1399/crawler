@@ -12,6 +12,7 @@ const ROUTES: [method: string, path: string][] = [
   ['patch', '/profiles/{id}'],
   ['delete', '/profiles/{id}'],
   ['get', '/runs'],
+  ['get', '/runs/stats'],
   ['post', '/crawl/{source}'],
   ['post', '/crawl'],
   ['post', '/crawl/{source}/sync'],

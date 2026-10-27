@@ -55,6 +55,7 @@ curl "localhost:3000/queues"                                  # 큐별 카운트
 ```
 CRAWL_CRON=*/30 * * * *        # 수집 주기. 운영은 0 8-22/2 * * *
 CRAWL_ON_BOOT=true             # 기동 직후 1회 실행 (개발용)
+LOG_LEVEL=info                 # 기본: production=info, 그 외=debug
 SLACK_WEBHOOK_URL=...          # 넣으면 새 공고 알림 (미연동, 아래 참고)
 ```
 
@@ -89,11 +90,14 @@ SLACK_WEBHOOK_URL=...          # 넣으면 새 공고 알림 (미연동, 아래 
 - Next.js 16 App Router + Tailwind v4. 페이지는 서버 컴포넌트가 API를 직접 읽고, 버튼은 서버 액션으로 API를 호출합니다. 브라우저는 API에 직접 붙지 않습니다.
 - `/` 공고 목록: 소스·검색어·오늘 신규만·숨김만·별표·만료 포함 필터(바꾸는 즉시 적용, 검색어는 debounce, URL 상태는 nuqs), 30건씩 페이지네이션, 숨김/별표 토글. 오늘 처음 잡힌 공고에는 NEW 배지와 헤더 집계. 숨긴 공고는 기본 목록과 통계에서 빠지고, 클릭한 링크는 브라우저 `:visited`로 흐려집니다.
 - `/profiles` 검색 프로필 CRUD, 활성 토글, "지금 수집"(모든 소스 enqueue).
-- `/runs` 최근 50회 실행 이력.
+- `/runs` 최근 14일 일별 추이 차트(소스별 신규 공고·평균 소요)와 최근 50회 실행 이력.
 - API 주소는 `API_URL`(로컬 기본 `http://localhost:3000`), Bull Board 링크는 `NEXT_PUBLIC_BULL_BOARD_URL`.
 - 조회는 로그인 없이 공개. 숨김·별표·프로필 변경·지금 수집은 버튼을 누를 때 Clerk 로그인을 요구하고, `OWNER_EMAILS`의 계정만 통과. 키가 없으면 로컬은 열린 모드, 운영은 변경 거부. Bull Board는 Basic Auth.
 
 ## 운영 동작
+
+- **로그:** pino JSON 한 줄(개발은 pretty). 요청 중 찍힌 모든 줄에 `req.id`가 붙고 오류 응답의 `requestId`·`x-request-id` 헤더와 같은 값이다. 추적: `docker compose -f docker-compose.prod.yml logs api | grep <requestId>`.
+- **헬스:** `GET /health`는 Postgres·Redis(큐 카운트)를 1.5초 안에 확인해 둘 다 정상이면 200 `ok`, 아니면 503 `degraded`(본문에 어느 쪽이 down인지). 운영 compose의 api healthcheck가 이걸 본다.
 
 - **만료:** 매일 `MAINTENANCE_CRON`(기본 03:15)에 마감일이 지났거나 `STALE_DAYS`(14일) 동안 어떤 수집에도 안 잡힌 공고를 EXPIRED로 바꿉니다. 삭제하지 않고, 다시 잡히면 ACTIVE로 복귀. 수동 실행: `POST /maintenance/expire`
 - **재게시:** 회사명+제목을 정규화한 `fingerprint`가 `REPOST_WINDOW_DAYS`(45일) 안에 이미 있으면 새 공고에 `repostOfId`를 달고 알림 대상에서 뺍니다(저장은 됨, 목록에 "재게시" 표시). `NOTIFY_REPOSTS=true`면 알림에 포함.

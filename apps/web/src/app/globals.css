@@ -138,3 +138,16 @@
     font-family: var(--font-sans), 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   }
 }
+
+/* Chart series colours: dataviz default palette slots 1 (blue) and 2 (orange), fixed per source
+   and validated for both surfaces (see apps/web/src/app/runs/runs-chart.tsx). */
+:root {
+  --viz-wanted: #2a78d6;
+  --viz-saramin: #eb6834;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --viz-wanted: #3987e5;
+    --viz-saramin: #d95926;
+  }
+}

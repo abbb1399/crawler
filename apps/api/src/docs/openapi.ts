@@ -14,7 +14,9 @@ import {
   PostingListQuery,
   PostingPatch,
   QueueCounts,
+  RunsDaily,
   RunsQuery,
+  RunsStatsQuery,
   SearchProfile,
   SearchProfileInput,
   SearchProfilePatch,
@@ -77,7 +79,9 @@ export function buildOpenApiDocument(version: string) {
     ],
     paths: {
       '/health': {
-        get: op('health', 'API·DB 상태', { responses: { 200: json(HealthResponse, 'ok') } }),
+        get: op('health', 'API·Postgres·Redis 상태', {
+          responses: { 200: json(HealthResponse, '모두 정상'), 503: json(HealthResponse, 'degraded — db 또는 redis가 down') },
+        }),
       },
       '/postings': {
         get: op('postings', '공고 목록 (숨긴 공고는 hidden=true일 때만)', {
@@ -118,6 +122,12 @@ export function buildOpenApiDocument(version: string) {
         get: op('stats', '최근 실행 이력 (최신순)', {
           requestParams: { query: RunsQuery },
           responses: { 200: json(z.array(CrawlRun), '실행 목록'), 400: VALIDATION },
+        }),
+      },
+      '/runs/stats': {
+        get: op('stats', '일별 실행 추이 (KST 기준, 소스별 건수·실패·신규·평균 소요)', {
+          requestParams: { query: RunsStatsQuery },
+          responses: { 200: json(RunsDaily, '날짜×소스 버킷, 빈 날은 0'), 400: VALIDATION },
         }),
       },
       '/crawl/{source}': {
@@ -167,6 +177,8 @@ export function buildOpenApiDocument(version: string) {
         SearchProfilePatch,
         CrawlRun,
         RunsQuery,
+        RunsStatsQuery,
+        RunsDaily,
         CrawlTriggerQuery,
         CrawlSyncResult,
         EnqueueResult,

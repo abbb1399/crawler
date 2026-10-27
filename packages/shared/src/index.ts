@@ -20,10 +20,18 @@ export const REGION_LABEL: Record<Region, string> = {
   INCHEON: '인천',
 };
 
-/** Shape returned by GET /health. */
+/** BullMQ job counts per queue: { "crawl-wanted": { waiting, active, delayed, completed, failed }, ... } */
+export const QueueCounts = z.record(z.string(), z.record(z.string(), z.number()));
+export type QueueCounts = z.infer<typeof QueueCounts>;
+
+/** Shape returned by GET /health — 200 when `ok`, 503 when `degraded` (body is the same). */
 export const HealthResponse = z.object({
-  status: z.literal('ok'),
+  status: z.enum(['ok', 'degraded']),
   db: z.enum(['ok', 'down']),
+  /** Probed through BullMQ job counts. */
+  redis: z.enum(['ok', 'down']),
+  /** null when Redis is down. */
+  queues: QueueCounts.nullable(),
   uptimeSec: z.number(),
   timestamp: z.string(),
 });
@@ -92,10 +100,6 @@ export const TestAlertResult = z.object({
   channels: z.array(NotifyChannel),
 });
 export type TestAlertResult = z.infer<typeof TestAlertResult>;
-
-/** BullMQ job counts per queue: { "crawl-wanted": { waiting, active, delayed, completed, failed }, ... } */
-export const QueueCounts = z.record(z.string(), z.record(z.string(), z.number()));
-export type QueueCounts = z.infer<typeof QueueCounts>;
 
 // ---------------------------------------------------------------------------
 // Read API (consumed by apps/web)
@@ -221,6 +225,27 @@ export const RunsQuery = z.object({
   source: JobSource.optional(),
 });
 export type RunsQuery = z.infer<typeof RunsQuery>;
+
+/** Query for GET /runs/stats. */
+export const RunsStatsQuery = z.object({
+  days: z.coerce.number().int().min(1).max(90).default(14),
+});
+export type RunsStatsQuery = z.infer<typeof RunsStatsQuery>;
+
+/** One (KST day, source) bucket of crawl runs; every day in the range is present, zero-filled. */
+export const RunsDailyPoint = z.object({
+  /** YYYY-MM-DD in Asia/Seoul. */
+  day: z.string(),
+  source: JobSource,
+  runs: z.number(),
+  failed: z.number(),
+  inserted: z.number(),
+  /** Mean of finished runs; null when none finished that day. */
+  avgDurationMs: z.number().nullable(),
+});
+export const RunsDaily = z.array(RunsDailyPoint);
+export type RunsDailyPoint = z.infer<typeof RunsDailyPoint>;
+export type RunsDaily = z.infer<typeof RunsDaily>;
 
 export const ExpireResult = z.object({
   byDueDate: z.number(),

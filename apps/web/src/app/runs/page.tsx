@@ -4,6 +4,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { api } from '@/lib/api';
 import { fmtDateTime, fmtDuration } from '@/lib/format';
+import { RunsChart } from './runs-chart';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ const STATUS: Record<string, string> = {
 };
 
 export default async function RunsPage() {
-  const runs = await api.runs(50);
+  const [runs, stats] = await Promise.all([api.runs(50), api.runsStats(14)]);
   return (
     <div className="space-y-4">
       <div>
@@ -23,6 +24,8 @@ export default async function RunsPage() {
           최근 50회. 수집 = 사이트가 돌려준 건수, 통과 = 제목 필터 후, 신규 = 새로 저장된 건수.
         </p>
       </div>
+
+      {runs.length > 0 && <RunsChart data={stats} />}
 
       {runs.length === 0 ? (
         <Empty>

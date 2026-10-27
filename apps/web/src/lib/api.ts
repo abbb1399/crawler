@@ -5,6 +5,7 @@ import type {
   Posting,
   PostingList,
   PostingPatch,
+  RunsDaily,
   SearchProfile,
   SearchProfileInput,
   SearchProfilePatch,
@@ -63,4 +64,5 @@ export const api = {
     call<EnqueueResult[]>(`/crawl?profileId=${profileId}`, { method: 'POST' }),
 
   runs: (limit = 50) => call<CrawlRun[]>(`/runs?limit=${limit}`),
+  runsStats: (days = 14) => call<RunsDaily>(`/runs/stats?days=${days}`),
 };

@@ -3,8 +3,9 @@
 import { JobSource, Region, SearchProfileInput, SearchProfilePatch } from '@trawler/shared';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { api, ApiError } from './api';
+import { api } from './api';
 import { requireOwner } from './auth';
+import { errorQuery, invalidQuery } from './flash';
 
 function num(v: FormDataEntryValue | null): number {
   const n = Number(v);
@@ -51,25 +52,16 @@ function profileFromForm(formData: FormData) {
   };
 }
 
-function errorMessage(e: unknown): string {
-  if (e instanceof ApiError) {
-    const issues = (e.body as { issues?: { path: string; message: string }[] } | null)?.issues;
-    if (issues?.length) return issues.map((i) => `${i.path}: ${i.message}`).join(', ');
-    return e.message;
-  }
-  return e instanceof Error ? e.message : String(e);
-}
-
 export async function createProfile(formData: FormData) {
   await requireOwner('/profiles/new');
   const parsed = SearchProfileInput.safeParse(profileFromForm(formData));
   if (!parsed.success) {
-    redirect(`/profiles/new?error=${encodeURIComponent(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', '))}`);
+    redirect(`/profiles/new?${invalidQuery(parsed.error.issues.map((i) => String(i.path[0])))}`);
   }
   try {
     await api.createProfile(parsed.data);
   } catch (e) {
-    redirect(`/profiles/new?error=${encodeURIComponent(errorMessage(e))}`);
+    redirect(`/profiles/new?${errorQuery(e)}`);
   }
   revalidatePath('/profiles');
   redirect('/profiles');
@@ -80,12 +72,12 @@ export async function updateProfile(formData: FormData) {
   const id = num(formData.get('id'));
   const parsed = SearchProfilePatch.safeParse(profileFromForm(formData));
   if (!parsed.success) {
-    redirect(`/profiles/${id}/edit?error=${encodeURIComponent(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', '))}`);
+    redirect(`/profiles/${id}/edit?${invalidQuery(parsed.error.issues.map((i) => String(i.path[0])))}`);
   }
   try {
     await api.updateProfile(id, parsed.data);
   } catch (e) {
-    redirect(`/profiles/${id}/edit?error=${encodeURIComponent(errorMessage(e))}`);
+    redirect(`/profiles/${id}/edit?${errorQuery(e)}`);
   }
   revalidatePath('/profiles');
   redirect('/profiles');

@@ -10,6 +10,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/u
 import { api } from '@/lib/api';
 import { crawlNow, deleteProfile, toggleProfileEnabled } from '@/lib/actions';
 import { viewer } from '@/lib/auth';
+import { errorText } from '@/lib/flash';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,8 @@ export default async function ProfilesPage({
 }: {
   searchParams: Promise<{ queued?: string; error?: string }>;
 }) {
-  const [{ queued, error }, profiles, { signedIn }] = await Promise.all([searchParams, api.profiles(), viewer()]);
+  const [{ queued, error: code }, profiles, { signedIn }] = await Promise.all([searchParams, api.profiles(), viewer()]);
+  const error = errorText(code);
 
   return (
     <div className="space-y-5">

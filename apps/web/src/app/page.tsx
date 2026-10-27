@@ -19,6 +19,7 @@ import {
 import { api } from '@/lib/api';
 import { toggleHidden, toggleStar } from '@/lib/actions';
 import { viewer } from '@/lib/auth';
+import { errorText } from '@/lib/flash';
 import { fmtDateTime, fmtDue } from '@/lib/format';
 import { PostingsFilters } from './postings-filters';
 import { loadPostingsSearchParams, serializePostingsSearchParams } from './postings-search-params';
@@ -69,9 +70,9 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
 
       <PostingsFilters />
 
-      {sp.error && (
+      {errorText(sp.error) && (
         <Alert variant="destructive">
-          <AlertDescription>{sp.error}</AlertDescription>
+          <AlertDescription>{errorText(sp.error)}</AlertDescription>
         </Alert>
       )}
 

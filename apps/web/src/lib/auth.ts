@@ -20,7 +20,7 @@ export async function viewer(): Promise<{ signedIn: boolean }> {
 export async function requireOwner(returnTo: string): Promise<void> {
   if (!clerkEnabled) {
     if (process.env.NODE_ENV === 'production') {
-      redirect(withError(returnTo, '인증이 설정되지 않아 변경할 수 없습니다 (Clerk 키 없음)'));
+      redirect(withError(returnTo, 'no-auth'));
     }
     return;
   }
@@ -28,11 +28,12 @@ export async function requireOwner(returnTo: string): Promise<void> {
   if (!userId) return redirectToSignIn({ returnBackUrl: returnTo });
   const user = await currentUser();
   const emails = (user?.emailAddresses ?? []).map((e) => e.emailAddress);
-  if (!isOwner(emails, process.env.OWNER_EMAILS)) redirect(withError(returnTo, '소유자 계정만 변경할 수 있습니다'));
+  if (!isOwner(emails, process.env.OWNER_EMAILS)) redirect(withError(returnTo, 'not-owner'));
 }
 
-function withError(path: string, message: string): string {
+/** `code` is one of the fixed codes in lib/flash.ts. */
+function withError(path: string, code: string): string {
   const u = new URL(path, 'http://localhost');
-  u.searchParams.set('error', message);
+  u.searchParams.set('error', code);
   return `${u.pathname}${u.search}`;
 }

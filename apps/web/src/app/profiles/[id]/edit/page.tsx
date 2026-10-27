@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { updateProfile } from '@/lib/actions';
 import { viewer } from '@/lib/auth';
+import { errorText } from '@/lib/flash';
 import { ProfileForm } from '../../profile-form';
 
 export const dynamic = 'force-dynamic';
@@ -11,9 +12,9 @@ export default async function EditProfilePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; fields?: string }>;
 }) {
-  const [{ id }, { error }, { signedIn }] = await Promise.all([params, searchParams, viewer()]);
+  const [{ id }, { error, fields }, { signedIn }] = await Promise.all([params, searchParams, viewer()]);
   const n = Number(id);
   if (!Number.isInteger(n) || n <= 0) notFound();
 
@@ -30,7 +31,7 @@ export default async function EditProfilePage({
       <h1 className="text-xl font-semibold">
         프로필 편집 <span className="text-sm font-normal text-muted-foreground">#{profile.id}</span>
       </h1>
-      <ProfileForm action={updateProfile} profile={profile} error={error} signedIn={signedIn} />
+      <ProfileForm action={updateProfile} profile={profile} error={errorText(error, fields) ?? undefined} signedIn={signedIn} />
     </div>
   );
 }

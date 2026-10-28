@@ -9,7 +9,9 @@ import type { FetchOptions, SourceAdapter } from './source-adapter';
 /**
  * Wanted exposes the same JSON API its SPA uses. Verified 2026-10-14:
  *   GET https://www.wanted.co.kr/api/v4/search?query=<kw>&country=kr&limit=<n>&offset=<n>
- * Returns `data.jobs[]`, newest first, with limit/offset pagination.
+ * Returns `data.jobs[]` with limit/offset pagination. Without a sort it is NOT newest first (2026-10-28:
+ * Product Engineer postings from after the first crawl were never in the first 60), so we ask for
+ * `job_sort=job.latest_order`, the value Wanted's own job list uses for 최신순.
  * (`/api/v4/jobs?query=` only matches titles and returned far fewer results.)
  * Region filter: repeat `locations=<slug>.all` (verified 2026-10-19).
  */
@@ -68,6 +70,7 @@ export class WantedAdapter implements SourceAdapter {
     url.searchParams.set('country', 'kr');
     url.searchParams.set('limit', String(PAGE_SIZE));
     url.searchParams.set('offset', String(offset));
+    url.searchParams.set('job_sort', 'job.latest_order');
     for (const r of regions) url.searchParams.append('locations', LOCATION_SLUG[r]);
 
     const res = await globalThis.fetch(url, {

@@ -63,6 +63,7 @@ describe('WantedAdapter', () => {
     expect(url.searchParams.get('country')).toBe('kr');
     expect(url.searchParams.get('limit')).toBe('20');
     expect(url.searchParams.get('offset')).toBe('0');
+    expect(url.searchParams.get('job_sort')).toBe('job.latest_order');
     expect(url.searchParams.getAll('locations')).toEqual(['seoul.all', 'gyeonggi.all']);
   });
 

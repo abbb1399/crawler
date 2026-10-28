@@ -127,6 +127,7 @@ sequenceDiagram
 - **소스별 큐.** `crawl-wanted`, `crawl-saramin`, `notify` 세 큐. 사람인은 브라우저를 띄우므로 concurrency 1로 한 번에 한 브라우저만 돈다. `lockDuration` 5분으로 느린 크롤이 stalled 판정을 받지 않게 했다.
 - **잡 ID로 중복 방지.** `{source}-{profileId}-{분}`이라 크론이 두 번 튀거나 "지금 수집"을 연타해도 같은 분 안에서는 잡 하나로 합쳐진다.
 - **재시도와 최종 실패 알림.** 기본 3회, 지수 백오프 10초. 3회째도 실패하면 그것이 "사이트가 바뀌었거나 차단됐다"는 유일한 신호이므로 Slack 경고를 보낸다(`ALERT_MIN_INTERVAL_MIN`, 6시간에 한 번). 프로필이 삭제돼 `NotFoundException`이 나면 `UnrecoverableError`로 재시도 없이 끝낸다.
+- **원티드는 검색에 더해 직군 목록도 읽는다.** 원티드 검색은 모든 공고를 돌려주지 않는다(2026-10-28, 프론트엔드 직군 목록에만 있고 검색·앱 검색 어디에도 안 나오는 Product Engineer 공고 확인). 그래서 키워드 검색 뒤에 개발 › 프론트엔드 개발자 목록을 최신순으로 한 번 더 읽고, 같은 제목·지역 필터를 거친다(`SourceAdapter.browse`).
 - **어댑터는 무상태.** `SourceAdapter { source, fetch(keyword, opts) }` 하나로 두 사이트를 추상화한다. 원티드는 SPA가 쓰는 JSON API를 그대로 호출하고, 사람인은 서버 렌더링 HTML을 Playwright로 열어 `.item_recruit`를 파싱한다(추출 함수는 페이지 컨텍스트에서 실행되는 순수 함수라 jsdom으로 단위 테스트한다). 페이지 사이에 1초 / 2~4초 랜덤 대기.
 - **알림은 큐가 분리되어 있고 멱등.** `NotificationLog(postingId, channel, kind)`가 unique라 같은 공고가 두 번 가지 않고, 실패한 배치는 다음 잡에서 다시 시도한다.
 

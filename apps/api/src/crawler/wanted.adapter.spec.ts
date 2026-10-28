@@ -35,7 +35,10 @@ const requestedUrl = (fetchMock: ReturnType<typeof vi.fn>, call: number) =>
 
 /** fetch() sleeps 1s between pages; fake timers let a multi-page run finish instantly. */
 async function run(adapter: WantedAdapter, keyword: string, opts?: Parameters<WantedAdapter['fetch']>[1]) {
-  const p = adapter.fetch(keyword, opts);
+  return flush(adapter.fetch(keyword, opts));
+}
+
+async function flush<T>(p: Promise<T>): Promise<T> {
   p.catch(() => undefined); // a rejection may land while timers are flushed; the caller still awaits p
   await vi.runAllTimersAsync();
   return p;
@@ -117,5 +120,29 @@ describe('WantedAdapter', () => {
   it('throws when the response shape changed', async () => {
     stubFetch([{ data: { items: [] } }]);
     await expect(run(adapter, 'x')).rejects.toThrow(/shape changed/);
+  });
+
+  describe('browse (직군 list)', () => {
+    const list = (jobs: Job[]) => ({ data: jobs });
+
+    it('reads 개발 › 프론트엔드 newest first, with the same paging as the site', async () => {
+      const fetchMock = stubFetch([list(page(20)), list(page(3, 21))]);
+      const out = await flush(adapter.browse());
+      const url = requestedUrl(fetchMock, 0);
+      expect(url.origin + url.pathname).toBe('https://www.wanted.co.kr/api/chaos/navigation/v1/results');
+      expect(url.searchParams.get('job_group_id')).toBe('518');
+      expect(url.searchParams.get('job_ids')).toBe('669');
+      expect(url.searchParams.get('job_sort')).toBe('job.latest_order');
+      expect(url.searchParams.getAll('years')).toEqual(['0', '10']);
+      expect(url.searchParams.get('offset')).toBe('0');
+      expect(requestedUrl(fetchMock, 1).searchParams.get('offset')).toBe('20');
+      expect(out).toHaveLength(23);
+      expect(out[0]).toMatchObject({ source: 'WANTED', externalId: '1', title: '포지션 1', url: 'https://www.wanted.co.kr/wd/1' });
+    });
+
+    it('fails loudly when the list answers in another shape', async () => {
+      stubFetch([{ data: { jobs: page(1) } }]);
+      await expect(flush(adapter.browse())).rejects.toThrow(/shape changed/);
+    });
   });
 });

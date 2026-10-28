@@ -45,6 +45,7 @@ export class CrawlerService {
       for (const keyword of profile.keywords) {
         collected.push(...(await adapter.fetch(keyword, { regions: profile.regions })));
       }
+      if (adapter.browse) collected.push(...(await adapter.browse()));
       const relevant = collected.filter(
         (p) =>
           matchesTitle(p.title, profile.includeTitle, profile.excludeTitle) &&

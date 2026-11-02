@@ -56,10 +56,10 @@ export function RunsChart({ data }: { data: RunsDaily }) {
         <CardContent>
           <div role="img" aria-label={`최근 ${days}일 소스별 일별 신규 공고 수 막대 그래프`} className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={inserted} margin={{ top: 4, right: 8, left: -16, bottom: 0 }} barCategoryGap="30%">
+              <BarChart data={inserted} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barCategoryGap="30%">
                 <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.6} />
                 <XAxis dataKey="label" tick={axis} tickLine={false} axisLine={false} minTickGap={16} />
-                <YAxis tick={axis} tickLine={false} axisLine={false} allowDecimals={false} width={40} />
+                <YAxis tick={axis} tickLine={false} axisLine={false} allowDecimals={false} width="auto" />
                 <Tooltip {...tooltipStyle} formatter={(v, name) => [`${String(v)}건`, String(name)]} />
                 <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
                 {SERIES.map((s, i) => (
@@ -89,10 +89,10 @@ export function RunsChart({ data }: { data: RunsDaily }) {
         <CardContent>
           <div role="img" aria-label={`최근 ${days}일 소스별 일별 평균 수집 소요 시간 선 그래프`} className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={duration} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+              <LineChart data={duration} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.6} />
                 <XAxis dataKey="label" tick={axis} tickLine={false} axisLine={false} minTickGap={16} />
-                <YAxis tick={axis} tickLine={false} axisLine={false} width={40} unit="s" />
+                <YAxis tick={axis} tickLine={false} axisLine={false} width="auto" unit="s" />
                 <Tooltip {...tooltipStyle} formatter={(v, name) => [`${String(v)}초`, String(name)]} />
                 <Legend iconType="plainline" iconSize={12} wrapperStyle={{ fontSize: 12 }} />
                 {SERIES.map((s) => (

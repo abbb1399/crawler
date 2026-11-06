@@ -34,8 +34,8 @@ export const EnvSchema = z.object({
 
   /** Nightly maintenance (expiry pass). */
   MAINTENANCE_CRON: z.string().min(9).default('15 3 * * *'),
-  /** ACTIVE postings not seen by any crawl for this many days are marked EXPIRED. */
-  STALE_DAYS: z.coerce.number().int().min(1).default(14),
+  /** ACTIVE postings not seen by any crawl for this many days are marked EXPIRED. Must outlast the weekend gap of the weekday-only CRAWL_CRON (~58h) plus a day or two of crawl outage. */
+  STALE_DAYS: z.coerce.number().int().min(1).default(5),
   /** A new posting whose fingerprint was seen within this window counts as a repost. */
   REPOST_WINDOW_DAYS: z.coerce.number().int().min(1).default(45),
   /** Announce reposts too (default: suppress). */

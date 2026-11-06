@@ -12,7 +12,7 @@ describe('validateEnv', () => {
       ROLE: 'all',
       CRAWL_CRON: '*/30 * * * *',
       CRAWL_ON_BOOT: false,
-      STALE_DAYS: 14,
+      STALE_DAYS: 5,
       REPOST_WINDOW_DAYS: 45,
       NOTIFY_REPOSTS: false,
       NOTIFY_MAX_PER_RUN: 50,

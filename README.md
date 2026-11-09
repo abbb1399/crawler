@@ -100,6 +100,6 @@ SLACK_WEBHOOK_URL=...          # 넣으면 새 공고 알림 (미연동, 아래 
 - **헬스:** `GET /health`는 Postgres·Redis(큐 카운트)를 1.5초 안에 확인해 둘 다 정상이면 200 `ok`, 아니면 503 `degraded`(본문에 어느 쪽이 down인지). 운영 compose의 api healthcheck가 이걸 본다.
 
 - **만료:** 매일 `MAINTENANCE_CRON`(기본 03:15)에 마감일이 지났거나 `STALE_DAYS`(7일) 동안 어떤 수집에도 안 잡힌 공고를 EXPIRED로 바꿉니다. 삭제하지 않고, 다시 잡히면 ACTIVE로 복귀. 수동 실행: `POST /maintenance/expire`
-- **조기마감 확인:** 같은 정리 작업 끝에 원티드 ACTIVE 공고를 가장 오래 확인 안 한 순으로 30건씩 상세 API(`/api/chaos/jobs/v5/<id>/details`)로 조회해, `status: close`면 EXPIRED로 바꿉니다. 마감일은 남았는데 회사가 먼저 닫았고 검색에는 계속 나오는 공고를 잡기 위해서이며, 이렇게 닫힌 공고(`closedAt`)는 다시 수집돼도 ACTIVE로 돌리지 않습니다. 사람인은 브라우저가 필요해 하지 않습니다.
+- **조기마감 확인:** 마감일 전에 회사가 닫은 공고는 검색에서 빠지지만, `STALE_DAYS` 만료는 일주일 뒤에야 잡습니다. 그래서 같은 정리 작업 끝에, 마지막으로 성공한 원티드 수집에 안 나온 ACTIVE 공고만 사라질 때마다 한 번씩 상세 API(`/api/chaos/jobs/v5/<id>/details`)로 조회해 `status: close`면 바로 EXPIRED로 바꿉니다(하루 최대 30건, 403/429면 중단). 시계가 아니라 마지막 수집을 기준으로 삼아 주말·장애에 멀쩡한 공고가 대상이 되지 않습니다. 이렇게 닫힌 공고(`closedAt`)는 다시 수집돼도 ACTIVE로 돌리지 않습니다. 사람인은 아직 하지 않습니다.
 - **재게시:** 회사명+제목을 정규화한 `fingerprint`가 `REPOST_WINDOW_DAYS`(45일) 안에 이미 있으면 새 공고에 `repostOfId`를 달고 알림 대상에서 뺍니다(저장은 됨, 목록에 "재게시" 표시). `NOTIFY_REPOSTS=true`면 알림에 포함.
 - **알림 (슬랙, 미연동):** `SLACK_WEBHOOK_URL`이 있으면 최근 `NOTIFY_LOOKBACK_HOURS`(기본 24h) 안에 처음 본 공고를 10건씩 묶어 보냅니다. `NotificationLog(postingId, channel, kind)` unique라 같은 공고가 두 번 가지 않고, 실패는 다음 실행에서 재시도. 밀린 알림 재발송: `POST /maintenance/notify`. 크롤 잡이 3회 재시도 후 최종 실패하면 같은 웹훅으로 경고를 보냅니다(`ALERT_MIN_INTERVAL_MIN`, 기본 6시간에 한 번). 운영 서버에는 아직 웹훅을 넣지 않았습니다.

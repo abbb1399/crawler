@@ -1,7 +1,7 @@
-import type { RawPosting } from '@trawler/shared';
+import type { JobSource, RawPosting } from '@trawler/shared';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PostingsService } from '../postings/postings.service';
-import { DAY_MS, makePrisma, rawPosting, seedPosting, stubConfig, truncateAll } from '../test/db';
+import { DAY_MS, HOUR_MS, makePrisma, rawPosting, seedPosting, stubConfig, truncateAll } from '../test/db';
 import { CrawlerService } from './crawler.service';
 import type { SourceAdapter } from './source-adapter';
 
@@ -21,45 +21,80 @@ function crawler(closedIds: string[], failIds: string[] = [], failWith = 'HTTP 5
   return { svc: new CrawlerService([wanted, saramin], prisma, postings), isClosed };
 }
 
+// The latest successful Wanted crawl started at T; anything last seen before it was not returned by it.
+const T = new Date('2026-11-09T13:00:00Z');
+const before = (ms: number) => new Date(T.getTime() - ms);
+
+async function crawlRun(source: JobSource, startedAt: Date, status: 'OK' | 'FAILED' = 'OK') {
+  const profile = await prisma.searchProfile.upsert({
+    where: { name: 'p' },
+    create: { name: 'p', keywords: ['x'], sources: ['WANTED', 'SARAMIN'] },
+    update: {},
+  });
+  await prisma.crawlRun.create({ data: { source, profileId: profile.id, startedAt, status } });
+}
+
+/** A posting that dropped out of search a day before T unless `extra` says otherwise. */
 const seed = (p: Partial<RawPosting>, extra: Parameters<typeof seedPosting>[2] = {}) =>
-  seedPosting(prisma, rawPosting(p), extra);
+  seedPosting(prisma, rawPosting(p), { lastSeenAt: before(DAY_MS), ...extra });
 const row = (id: number) => prisma.jobPosting.findUniqueOrThrow({ where: { id } });
 
 beforeEach(() => truncateAll(prisma));
 afterAll(() => prisma.$disconnect());
 
 describe('checkClosed', () => {
-  it('checks never-checked, then least recently checked ACTIVE postings, up to the limit', async () => {
-    const recent = await seed({ externalId: 'recent' }, { checkedAt: new Date() });
-    const old = await seed({ externalId: 'old' }, { checkedAt: new Date(Date.now() - 3 * DAY_MS) });
-    const never = await seed({ externalId: 'never' });
+  beforeEach(() => crawlRun('WANTED', T));
+
+  it('checks only postings the latest successful crawl no longer returned, latest to disappear first', async () => {
+    await crawlRun('WANTED', new Date(T.getTime() + HOUR_MS), 'FAILED'); // a later failed run is ignored
+    await seed({ externalId: 'seen' }, { lastSeenAt: new Date(T.getTime() + 60_000) });
+    const gone1d = await seed({ externalId: 'gone1d' });
+    const gone2d = await seed({ externalId: 'gone2d' }, { lastSeenAt: before(2 * DAY_MS) });
     await seed({ externalId: 'expired' }, { status: 'EXPIRED' });
     await seed({ source: 'SARAMIN', externalId: 's1' });
-    const { svc, isClosed } = crawler(['old']);
+    const { svc, isClosed } = crawler(['gone1d']);
 
-    expect(await svc.checkClosed(2)).toEqual({ checked: 2, closed: 1, failed: 0 });
-    expect(isClosed.mock.calls.map(([id]) => id)).toEqual(['never', 'old']);
+    expect(await svc.checkClosed()).toEqual({ checked: 2, closed: 1, failed: 0 });
+    expect(isClosed.mock.calls.map(([id]) => id)).toEqual(['gone1d', 'gone2d']);
+    expect(await row(gone1d.id)).toMatchObject({ status: 'EXPIRED', closedAt: expect.any(Date) });
+    expect(await row(gone2d.id)).toMatchObject({ status: 'ACTIVE', closedAt: null, checkedAt: expect.any(Date) });
+  });
 
-    expect(await row(old.id)).toMatchObject({ status: 'EXPIRED', closedAt: expect.any(Date) });
-    expect(await row(never.id)).toMatchObject({ status: 'ACTIVE', closedAt: null, checkedAt: expect.any(Date) });
-    expect((await row(recent.id)).status).toBe('ACTIVE');
+  it('asks once per disappearance: a posting confirmed open is not re-asked until seen and gone again', async () => {
+    await seed({ externalId: 'checked-since' }, { checkedAt: before(HOUR_MS) });
+    await seed({ externalId: 'checked-before' }, { checkedAt: before(2 * DAY_MS) });
+    const { svc, isClosed } = crawler([]);
+
+    await svc.checkClosed();
+    expect(isClosed.mock.calls.map(([id]) => id)).toEqual(['checked-before']);
+  });
+
+  it('respects the limit', async () => {
+    await seed({ externalId: 'a' });
+    await seed({ externalId: 'b' });
+    expect((await crawler([]).svc.checkClosed(1)).checked).toBe(1);
+  });
+
+  it('does nothing for a source with no successful crawl yet', async () => {
+    await truncateAll(prisma);
+    await seed({ externalId: 'a' });
+    const { svc, isClosed } = crawler([]);
+    expect(await svc.checkClosed()).toEqual({ checked: 0, closed: 0, failed: 0 });
+    expect(isClosed).not.toHaveBeenCalled();
   });
 
   it('skips a failed check and leaves the posting as it was', async () => {
     const broken = await seed({ externalId: 'broken' });
-    const { svc } = crawler([], ['broken']);
-
-    expect(await svc.checkClosed()).toEqual({ checked: 0, closed: 0, failed: 1 });
+    expect(await crawler([], ['broken']).svc.checkClosed()).toEqual({ checked: 0, closed: 0, failed: 1 });
     expect(await row(broken.id)).toMatchObject({ status: 'ACTIVE', checkedAt: null });
   });
 
   it('keeps going after an ordinary failure but stops the pass when blocked (403/429)', async () => {
     await seed({ externalId: 'a' });
-    await seed({ externalId: 'b' });
-    await seed({ externalId: 'c' });
+    await seed({ externalId: 'b' }, { lastSeenAt: before(2 * DAY_MS) });
+    await seed({ externalId: 'c' }, { lastSeenAt: before(3 * DAY_MS) });
 
-    const ordinary = crawler([], ['a'], 'HTTP 404');
-    expect(await ordinary.svc.checkClosed()).toEqual({ checked: 2, closed: 0, failed: 1 });
+    expect(await crawler([], ['a'], 'HTTP 404').svc.checkClosed()).toEqual({ checked: 2, closed: 0, failed: 1 });
 
     await prisma.jobPosting.updateMany({ data: { checkedAt: null } });
     const blocked = crawler([], ['a'], 'HTTP 429');
@@ -67,9 +102,11 @@ describe('checkClosed', () => {
     expect(blocked.isClosed).toHaveBeenCalledTimes(1);
   });
 
-  it('a posting confirmed closed stays EXPIRED when search keeps returning it', async () => {
+  it('a posting confirmed closed stays EXPIRED if search returns it again', async () => {
     const [id] = (await postings.upsertMany([rawPosting({ externalId: 'c' })])).insertedIds;
+    await prisma.jobPosting.update({ where: { id }, data: { lastSeenAt: before(DAY_MS) } });
     await crawler(['c']).svc.checkClosed();
+    expect((await row(id)).status).toBe('EXPIRED');
 
     await postings.upsertMany([rawPosting({ externalId: 'c' })]); // unchanged
     expect((await row(id)).status).toBe('EXPIRED');

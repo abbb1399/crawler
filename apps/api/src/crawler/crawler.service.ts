@@ -6,7 +6,7 @@ import { sleep } from './scrape';
 import { SOURCE_ADAPTERS, type SourceAdapter } from './source-adapter';
 import { matchesRegion, matchesTitle } from './title-filter';
 
-/** Detail requests per nightly pass. ~150 active postings → each one re-checked about every 5 days. */
+/** Upper bound on detail requests per nightly pass; a normal day has only a handful of candidates. */
 const CLOSE_CHECKS_PER_RUN = 30;
 
 @Injectable()
@@ -105,18 +105,39 @@ export class CrawlerService {
   }
 
   /**
-   * Ask the site whether ACTIVE postings are still open, least recently checked first, for sources
-   * whose adapter has `isClosed`. Catches postings closed early that search keeps returning, which
-   * neither the due date nor STALE_DAYS can. A failed check is skipped and retried on a later pass.
+   * A posting closed early drops out of search, and STALE_DAYS only expires it a week later. So ask
+   * the site directly about ACTIVE postings that the latest successful crawl of their source no longer
+   * returned, once per disappearance (not re-asked until seen again and gone again). Those are either
+   * closed or merely pushed past the pages we read; the detail check tells which. Measuring against
+   * the last crawl rather than the clock keeps weekends and outages from flagging everything.
+   * A failed check is skipped and retried on a later pass.
    */
   async checkClosed(limit = CLOSE_CHECKS_PER_RUN): Promise<{ checked: number; closed: number; failed: number }> {
-    const sources = [...this.adapters.values()].filter((a) => a.isClosed).map((a) => a.source);
-    const rows = await this.prisma.jobPosting.findMany({
-      where: { status: 'ACTIVE', source: { in: sources } },
-      orderBy: [{ checkedAt: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }],
-      take: limit,
-      select: { id: true, source: true, externalId: true },
-    });
+    const rows: { id: number; source: JobSource; externalId: string }[] = [];
+    for (const adapter of this.adapters.values()) {
+      if (!adapter.isClosed) continue;
+      // shortcut: any profile's run counts, so with several profiles a posting only another profile
+      // finds also gets checked (a wasted request, not a wrong result); key runs by profile if that grows.
+      const lastRun = await this.prisma.crawlRun.findFirst({
+        where: { source: adapter.source, status: 'OK' },
+        orderBy: { startedAt: 'desc' },
+        select: { startedAt: true },
+      });
+      if (!lastRun) continue;
+      rows.push(
+        ...(await this.prisma.jobPosting.findMany({
+          where: {
+            source: adapter.source,
+            status: 'ACTIVE',
+            lastSeenAt: { lt: lastRun.startedAt },
+            OR: [{ checkedAt: null }, { checkedAt: { lt: this.prisma.jobPosting.fields.lastSeenAt } }],
+          },
+          orderBy: [{ lastSeenAt: 'desc' }, { id: 'asc' }],
+          take: limit - rows.length,
+          select: { id: true, source: true, externalId: true },
+        })),
+      );
+    }
 
     const result = { checked: 0, closed: 0, failed: 0 };
     for (const [i, row] of rows.entries()) {

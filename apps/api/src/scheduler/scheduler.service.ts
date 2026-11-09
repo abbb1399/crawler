@@ -83,8 +83,8 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
       });
       const r = await this.postings.expireStale();
       const c = await this.crawler.checkClosed();
-      if (c.failed > 0 && c.checked === 0) {
-        // Every check failing means the detail API changed or blocked us, like a crawl failing for good.
+      if (c.failed >= 3 && c.checked === 0) {
+        // Every check failing means the detail API changed or blocked us; one or two can just be deleted postings.
         await this.notifications.alert('close-check-failed', `마감 확인 ${c.failed}건이 모두 실패했습니다. 상세 API가 바뀌었거나 차단됐을 수 있습니다.`);
       }
       this.logger.log(

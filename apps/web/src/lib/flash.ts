@@ -5,7 +5,7 @@ import { ApiError } from './api';
  * anything in a URL, so only these fixed codes and field keys are ever shown; the text comes from here.
  */
 const MESSAGES: Record<string, string> = {
-  'not-owner': '소유자 계정만 변경할 수 있습니다',
+  'not-owner': 'admin 계정만 변경할 수 있습니다',
   'no-auth': '인증이 설정되지 않아 변경할 수 없습니다 (Clerk 키 없음)',
   duplicate: '같은 이름의 프로필이 이미 있습니다',
   invalid: '입력값을 확인하세요',
@@ -22,7 +22,7 @@ const FIELD_LABEL: Record<string, string> = {
   enabled: '활성',
 };
 
-/** Banner text for a code from the URL, or null for anything unknown. */
+/** Toast text for a code from the URL, or null for anything unknown. */
 export function errorText(code?: string | null, fields?: string | null): string | null {
   if (!code || !Object.hasOwn(MESSAGES, code)) return null;
   const labels = (fields ?? '')

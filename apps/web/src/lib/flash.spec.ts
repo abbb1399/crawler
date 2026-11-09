@@ -4,7 +4,7 @@ import { errorQuery, errorText, invalidQuery } from './flash';
 
 describe('errorText', () => {
   it('shows the fixed text for a known code', () => {
-    expect(errorText('not-owner')).toBe('소유자 계정만 변경할 수 있습니다');
+    expect(errorText('not-owner')).toBe('admin 계정만 변경할 수 있습니다');
   });
 
   it('shows nothing for free text, unknown codes or prototype keys', () => {

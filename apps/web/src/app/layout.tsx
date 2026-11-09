@@ -11,6 +11,7 @@ import { MainNav } from '@/components/main-nav';
 import { Button } from '@/components/ui/button';
 import { SignInToAct } from '@/components/sign-in-to-act';
 import { TrawlerMark } from '@/components/trawler-mark';
+import { Toaster } from '@/components/ui/sonner';
 import { clerkEnabled } from '@/lib/clerk-enabled';
 import './globals.css';
 
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col overflow-x-hidden">
         {clerkEnabled ? <ClerkProvider localization={koKR} appearance={{ theme: shadcn }}>{shell}</ClerkProvider> : shell}
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

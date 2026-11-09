@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import type { SearchParams } from 'nuqs/server';
 import { ActionForm } from '@/components/action-form';
 import { StarButton } from '@/components/star-button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FlashToast } from '@/components/flash-toast';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
@@ -72,11 +72,7 @@ export default async function PostingsPage({ searchParams }: { searchParams: Pro
 
       <PostingsFilters />
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <FlashToast message={error} />
 
       {list.items.length === 0 ? (
         <Empty>

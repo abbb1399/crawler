@@ -3,6 +3,7 @@ import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import { cn } from 'cn';
 import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
+import { FlashToast } from '@/components/flash-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,11 +40,7 @@ export default async function ProfilesPage({
         </Button>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <FlashToast message={error} />
 
       {(Number(queued) > 0 || Number(running) > 0) && (
         <Alert>

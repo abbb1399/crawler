@@ -7,7 +7,7 @@ import { useTransition } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { SignInToAct } from '@/components/sign-in-to-act';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FlashToast } from '@/components/flash-toast';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -69,11 +69,7 @@ export function ProfileForm({
       {profile && <input type="hidden" name="id" value={profile.id} />}
 
       <FieldGroup>
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+        <FlashToast message={error} />
 
         <Field data-invalid={!!errors.name}>
           <FieldLabel htmlFor="name">이름</FieldLabel>

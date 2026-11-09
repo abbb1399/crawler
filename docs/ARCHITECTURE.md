@@ -196,7 +196,7 @@ sequenceDiagram
     else 로그인 안 됨
         W-->>B: Clerk 로그인 모달 → 돌아와서 재시도
     else 소유자 아님 (OWNER_EMAILS)
-        W-->>B: "소유자 계정만 변경" 배너
+        W-->>B: "admin 계정만 변경" 토스트
     else 소유자
         W->>API: PATCH /postings/:id
         W-->>B: revalidate → 갱신된 목록

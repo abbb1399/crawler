@@ -12,6 +12,13 @@ export async function viewer(): Promise<{ signedIn: boolean }> {
   return { signedIn: userId !== null };
 }
 
+/** Signed in with an email in OWNER_EMAILS (the admin). */
+export async function isAdmin(): Promise<boolean> {
+  const user = await currentUser();
+  if (!user) return false;
+  return isOwner(user.emailAddresses.map((e) => e.emailAddress), process.env.OWNER_EMAILS);
+}
+
 /**
  * The real gate, called first thing in every mutating server action. Reading is public; only the
  * owner (OWNER_EMAILS) may change anything. Signed-out callers are sent to sign in and come back to
@@ -26,9 +33,7 @@ export async function requireOwner(returnTo: string): Promise<void> {
   }
   const { userId, redirectToSignIn } = await auth();
   if (!userId) return redirectToSignIn({ returnBackUrl: returnTo });
-  const user = await currentUser();
-  const emails = (user?.emailAddresses ?? []).map((e) => e.emailAddress);
-  if (!isOwner(emails, process.env.OWNER_EMAILS)) redirect(withError(returnTo, 'not-owner'));
+  if (!(await isAdmin())) redirect(withError(returnTo, 'not-owner'));
 }
 
 /** `code` is one of the fixed codes in lib/flash.ts. */

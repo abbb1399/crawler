@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { SignInToAct } from '@/components/sign-in-to-act';
 import { TrawlerMark } from '@/components/trawler-mark';
 import { Toaster } from '@/components/ui/sonner';
+import { isAdmin } from '@/lib/auth';
 import { clerkEnabled } from '@/lib/clerk-enabled';
 import './globals.css';
 
@@ -22,6 +23,10 @@ export const metadata: Metadata = {
   title: 'trawler · 공고 수집기',
   description: '원티드/사람인 채용 공고 수집 대시보드',
 };
+
+async function AdminOnly({ children }: { children: React.ReactNode }) {
+  return (await isAdmin()) ? children : null;
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const bullBoard = (
@@ -46,12 +51,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <MainNav />
             <div className="ml-auto flex items-center gap-2">
-              {/* Bull Board is an operator tool: shown only to a signed-in user. Signed-out visitors get a
-                  sign-in button here (the change buttons in the lists also open the same modal). */}
+              {/* Bull Board is an operator tool: only the admin sees the link (Caddy basic auth still guards
+                  the page). Signed-out visitors get a sign-in button here, like the change buttons. */}
               {clerkEnabled ? (
                 <Suspense>
                   <Show when="signed-in">
-                    {bullBoard}
+                    <AdminOnly>{bullBoard}</AdminOnly>
                     <UserButton />
                   </Show>
                   <Show when="signed-out">

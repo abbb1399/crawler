@@ -5,7 +5,7 @@ import type { Page } from 'playwright';
 import type { Env } from '../config/env';
 import { BrowserService } from './browser.service';
 import { extractSaraminItems, type SaraminItem } from './saramin.extract';
-import { sleep } from './scrape';
+import { sleep, USER_AGENT } from './scrape';
 import type { FetchOptions, SourceAdapter } from './source-adapter';
 
 /**
@@ -92,6 +92,32 @@ export class SaraminAdapter implements SourceAdapter {
       throw new Error(`saramin: ${items.length} result cards but none had an id and title (layout changed)`);
     }
     return valid;
+  }
+
+  /**
+   * The posting page loads its body with POST /zf_user/jobs/relay/view-ajax (verified 2026-11-09 in a
+   * browser). A closed posting's apply button is `.sri_btn_expired_apply` "접수마감" (an open one has
+   * `.sri_btn_immediately`), also when the company closed it before the due date. Plain fetch, no
+   * browser: only a few calls a night. A response without this posting's header means the markup
+   * moved or we were blocked, so it throws rather than reading that as open.
+   */
+  async isClosed(externalId: string): Promise<boolean> {
+    const res = await globalThis.fetch(new URL('/zf_user/jobs/relay/view-ajax', BASE_URL), {
+      method: 'POST',
+      headers: {
+        'User-Agent': USER_AGENT,
+        Referer: `${BASE_URL}/zf_user/jobs/relay/view?rec_idx=${externalId}`,
+        'X-Requested-With': 'XMLHttpRequest',
+        Accept: 'text/html, */*; q=0.01',
+      },
+      body: new URLSearchParams({ rec_idx: externalId, rec_seq: '0' }),
+    });
+    if (!res.ok) throw new Error(`saramin view-ajax failed: HTTP ${res.status} (rec_idx=${externalId})`);
+    const html = await res.text();
+    if (!html.includes(`data-rec_idx="${externalId}"`)) {
+      throw new Error(`saramin view-ajax: no header for rec_idx=${externalId} (blocked or layout changed)`);
+    }
+    return html.includes('sri_btn_expired_apply');
   }
 
   private toRawPosting(item: SaraminItem): RawPosting {

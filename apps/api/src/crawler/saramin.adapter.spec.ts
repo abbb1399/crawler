@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { stubConfig } from '../test/db';
 import type { BrowserService } from './browser.service';
 import { parseDueDate, SaraminAdapter } from './saramin.adapter';
@@ -75,5 +75,47 @@ describe('SaraminAdapter.fetch', () => {
     const { adapter, snapshot } = adapterWith([card({ recIdx: '', title: '' }), card({ title: '' })]);
     await expect(adapter.fetch('node')).rejects.toThrow(/layout changed/);
     expect(snapshot).toHaveBeenCalledWith(expect.anything(), 'saramin-emptyfields');
+  });
+});
+
+describe('SaraminAdapter.isClosed (view-ajax)', () => {
+  // Trimmed from real responses on 2026-11-09; only the parts the check reads.
+  const header = (id: string, button: string) =>
+    `<div class="jv_header" data-rec_idx="${id}" data-rec_seq="0"><h1 class="tit_job">풀스택 개발자</h1>` +
+    `<div class="btn_apply">${button}</div></div>`;
+  const closed = (id: string) =>
+    header(id, '<button class="sri_btn_lg" title="접수마감"><span class="sri_btn_expired_apply">접수마감</span></button>') +
+    '<div class="jv_cont jv_detail expired"><p class="copy">본 채용정보는 <strong>마감</strong>되었습니다.</p></div>';
+  const open = (id: string) =>
+    header(id, '<span class="dday">D-7</span><button class="sri_btn_lg"><span class="sri_btn_immediately">입사지원</span></button>') +
+    '<div class="info_timer" data-remain-time="650583"></div>';
+
+  const adapter = new SaraminAdapter({} as BrowserService, stubConfig({ SARAMIN_MAX_PAGES: 1 }));
+  const stubFetch = (...responses: Response[]) => {
+    const fetchMock = vi.fn(async () => responses.shift()!);
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('posts the rec_idx to view-ajax and reads the expired apply button as closed', async () => {
+    const fetchMock = stubFetch(new Response(closed('55376622')));
+    expect(await adapter.isClosed('55376622')).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(url.toString()).toBe('https://www.saramin.co.kr/zf_user/jobs/relay/view-ajax');
+    expect(init.method).toBe('POST');
+    expect(new URLSearchParams(init.body as URLSearchParams).get('rec_idx')).toBe('55376622');
+  });
+
+  it('reads an open posting as open', async () => {
+    stubFetch(new Response(open('1')));
+    expect(await adapter.isClosed('1')).toBe(false);
+  });
+
+  it('throws on a non-OK response or a body without this posting, instead of guessing', async () => {
+    stubFetch(new Response('nope', { status: 429 }), new Response('<html>captcha</html>'), new Response(open('2')));
+    await expect(adapter.isClosed('1')).rejects.toThrow(/HTTP 429/);
+    await expect(adapter.isClosed('1')).rejects.toThrow(/layout changed/);
+    await expect(adapter.isClosed('1')).rejects.toThrow(/layout changed/);
   });
 });

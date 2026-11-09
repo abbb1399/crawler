@@ -2,8 +2,12 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { CrawlSummary, JobSource, RawPosting } from '@trawler/shared';
 import { PostingsService } from '../postings/postings.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { sleep } from './scrape';
 import { SOURCE_ADAPTERS, type SourceAdapter } from './source-adapter';
 import { matchesRegion, matchesTitle } from './title-filter';
+
+/** Detail requests per nightly pass. ~150 active postings → each one re-checked about every 5 days. */
+const CLOSE_CHECKS_PER_RUN = 30;
 
 @Injectable()
 export class CrawlerService {
@@ -98,5 +102,43 @@ export class CrawlerService {
       this.logger.error(`run#${run.id} failed: ${message}`);
       throw err;
     }
+  }
+
+  /**
+   * Ask the site whether ACTIVE postings are still open, least recently checked first, for sources
+   * whose adapter has `isClosed`. Catches postings closed early that search keeps returning, which
+   * neither the due date nor STALE_DAYS can. A failed check is skipped and retried on a later pass.
+   */
+  async checkClosed(limit = CLOSE_CHECKS_PER_RUN): Promise<{ checked: number; closed: number; failed: number }> {
+    const sources = [...this.adapters.values()].filter((a) => a.isClosed).map((a) => a.source);
+    const rows = await this.prisma.jobPosting.findMany({
+      where: { status: 'ACTIVE', source: { in: sources } },
+      orderBy: [{ checkedAt: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }],
+      take: limit,
+      select: { id: true, source: true, externalId: true },
+    });
+
+    const result = { checked: 0, closed: 0, failed: 0 };
+    for (const [i, row] of rows.entries()) {
+      if (i > 0) await sleep(1000);
+      try {
+        const closed = await this.adapters.get(row.source)!.isClosed!(row.externalId);
+        const now = new Date();
+        await this.prisma.jobPosting.update({
+          where: { id: row.id },
+          data: closed ? { checkedAt: now, closedAt: now, status: 'EXPIRED' } : { checkedAt: now },
+        });
+        result.checked++;
+        if (closed) result.closed++;
+      } catch (err) {
+        const message = (err as Error).message;
+        result.failed++;
+        this.logger.warn(`close check ${row.source}/${row.externalId} failed: ${message}`);
+        // Blocked or rate-limited: more requests would only make it worse (and the crawl shares this IP).
+        if (/HTTP (403|429)\b/.test(message)) break;
+      }
+    }
+    this.logger.log(result, 'close check done');
+    return result;
   }
 }

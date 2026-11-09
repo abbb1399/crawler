@@ -2,6 +2,8 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { CronJob } from 'cron';
 import type { Env } from '../config/env';
+import { CrawlerService } from '../crawler/crawler.service';
+import { NotificationsService } from '../notifier/notifications.service';
 import { PostingsService } from '../postings/postings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
@@ -10,7 +12,8 @@ import { QueueService } from '../queue/queue.service';
  * Two crons:
  *  - crawl: enqueue one job per (enabled profile × queued source). The job id embeds the
  *    minute, so a tick that fires twice cannot double-enqueue.
- *  - maintenance: nightly expiry pass + closing abandoned RUNNING runs (cheap DB updates, inline).
+ *  - maintenance: nightly expiry pass + closing abandoned RUNNING runs (cheap DB updates, inline),
+ *    then a capped detail check for postings closed early (CrawlerService.checkClosed).
  */
 @Injectable()
 export class SchedulerService implements OnModuleInit, OnModuleDestroy {
@@ -24,6 +27,8 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
     private readonly queues: QueueService,
     private readonly prisma: PrismaService,
     private readonly postings: PostingsService,
+    private readonly crawler: CrawlerService,
+    private readonly notifications: NotificationsService,
     config: ConfigService<Env, true>,
   ) {
     this.crawlCron = config.get('CRAWL_CRON', { infer: true });
@@ -77,8 +82,13 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
         data: { status: 'FAILED', finishedAt: new Date(), error: 'abandoned (process died mid-run)' },
       });
       const r = await this.postings.expireStale();
+      const c = await this.crawler.checkClosed();
+      if (c.failed > 0 && c.checked === 0) {
+        // Every check failing means the detail API changed or blocked us, like a crawl failing for good.
+        await this.notifications.alert('close-check-failed', `마감 확인 ${c.failed}건이 모두 실패했습니다. 상세 API가 바뀌었거나 차단됐을 수 있습니다.`);
+      }
       this.logger.log(
-        `maintenance(${trigger}): expired dueDate=${r.byDueDate} stale=${r.byStale}, abandoned runs=${abandoned.count}`,
+        `maintenance(${trigger}): expired dueDate=${r.byDueDate} stale=${r.byStale} closed=${c.closed}/${c.checked}, abandoned runs=${abandoned.count}`,
       );
       return r;
     } catch (err) {

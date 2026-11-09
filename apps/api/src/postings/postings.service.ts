@@ -70,7 +70,7 @@ export class PostingsService {
         where: {
           OR: unique.map((p) => ({ source: p.source, externalId: p.externalId })),
         },
-        select: { id: true, source: true, externalId: true, contentHash: true },
+        select: { id: true, source: true, externalId: true, contentHash: true, closedAt: true },
       });
       const existingByKey = new Map(existing.map((e) => [key(e.source, e.externalId), e]));
 
@@ -112,15 +112,17 @@ export class PostingsService {
           unchangedIds.push(prev.id);
           continue;
         }
+        // A posting the site confirmed closed stays EXPIRED even though search still returns it.
+        // shortcut: a posting the company reopens stays EXPIRED too; re-check closed ones if that shows up.
         await tx.jobPosting.update({
           where: { id: prev.id },
-          data: { ...row, lastSeenAt: now, status: 'ACTIVE' },
+          data: { ...row, lastSeenAt: now, status: prev.closedAt ? undefined : 'ACTIVE' },
         });
         updated++;
       }
       if (unchangedIds.length) {
         await tx.jobPosting.updateMany({
-          where: { id: { in: unchangedIds } },
+          where: { id: { in: unchangedIds }, closedAt: null },
           data: { lastSeenAt: now, status: 'ACTIVE' },
         });
       }

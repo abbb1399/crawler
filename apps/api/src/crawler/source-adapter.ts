@@ -16,6 +16,8 @@ export interface SourceAdapter {
   fetch(keyword: string, opts?: FetchOptions): Promise<RawPosting[]>;
   /** Optional keyword-free listing (e.g. a 직군 list) for postings the site's search does not return. */
   browse?(opts?: FetchOptions): Promise<RawPosting[]>;
+  /** Optional detail check: true when the site says this posting is closed (e.g. closed early, before its due date). */
+  isClosed?(externalId: string): Promise<boolean>;
 }
 
 export const SOURCE_ADAPTERS = Symbol('SOURCE_ADAPTERS');

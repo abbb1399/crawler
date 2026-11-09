@@ -145,4 +145,28 @@ describe('WantedAdapter', () => {
       await expect(flush(adapter.browse())).rejects.toThrow(/shape changed/);
     });
   });
+
+  describe('isClosed (detail API)', () => {
+    // Trimmed from a real response: closed early, due_time still in the future.
+    const detail = (status: string) => ({ data: { job: { id: 381814, status, due_time: '2026-12-31T00:00:00' } } });
+
+    it('asks the posting detail API and treats "close" as closed', async () => {
+      const fetchMock = stubFetch([detail('close')]);
+      expect(await adapter.isClosed('381814')).toBe(true);
+      const url = requestedUrl(fetchMock, 0);
+      expect(url.origin + url.pathname).toBe('https://www.wanted.co.kr/api/chaos/jobs/v5/381814/details');
+    });
+
+    it('treats "active" and unknown statuses as open', async () => {
+      stubFetch([detail('active'), detail('something-new')]);
+      expect(await adapter.isClosed('1')).toBe(false);
+      expect(await adapter.isClosed('2')).toBe(false);
+    });
+
+    it('throws on a non-OK response or a changed shape instead of guessing', async () => {
+      stubFetch([new Response('nope', { status: 404 }), { data: { position: {} } }]);
+      await expect(adapter.isClosed('1')).rejects.toThrow(/HTTP 404/);
+      await expect(adapter.isClosed('2')).rejects.toThrow(/shape changed/);
+    });
+  });
 });

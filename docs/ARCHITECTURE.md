@@ -148,7 +148,8 @@ stateDiagram-v2
     [*] --> ACTIVE: 첫 수집
     ACTIVE --> ACTIVE: 다시 잡힘, lastSeenAt 갱신. 내용이 바뀌면 update
     ACTIVE --> EXPIRED: 마감일 경과 또는 7일간 미수집
-    EXPIRED --> ACTIVE: 다시 잡힘
+    ACTIVE --> EXPIRED: 상세 확인 결과 마감 (원티드, closedAt)
+    EXPIRED --> ACTIVE: 다시 잡힘 (closedAt 없을 때)
     note right of ACTIVE
         hidden / starred는 상태와 독립인 사용자 플래그.
         재게시는 원본의 hidden을 물려받고,

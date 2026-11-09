@@ -36,6 +36,15 @@ const WantedSearchResponse = z.object({
 });
 const WantedListResponse = z.object({ data: z.array(WantedJob) });
 
+/**
+ * The posting page's own detail API (verified 2026-11-09): GET /api/chaos/jobs/v5/<id>/details.
+ * A posting the company closed early has `data.job.status: "close"` while `due_time` still shows the
+ * original date, and search kept returning it.
+ */
+const WantedDetailResponse = z.object({
+  data: z.looseObject({ job: z.looseObject({ status: z.string() }) }),
+});
+
 /** 개발(518) › 프론트엔드 개발자(669). shortcut: fixed for the one profile; move to SearchProfile if a second one needs another 직군. */
 const CATEGORY = { jobGroupId: '518', jobId: '669' };
 
@@ -83,6 +92,12 @@ export class WantedAdapter implements SourceAdapter {
       url.searchParams.set('offset', String(offset));
       return (await this.get(url, WantedListResponse)).data;
     });
+  }
+
+  /** Only an explicit "close" counts: an unknown status is left open rather than hidden by mistake. */
+  async isClosed(externalId: string): Promise<boolean> {
+    const url = new URL(`/api/chaos/jobs/v5/${encodeURIComponent(externalId)}/details`, BASE_URL);
+    return (await this.get(url, WantedDetailResponse)).data.job.status === 'close';
   }
 
   /** Walks pages until a short page or the page limit, keeping active postings. */

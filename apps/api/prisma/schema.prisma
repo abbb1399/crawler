@@ -78,6 +78,10 @@ model JobPosting {
   raw         Json
   firstSeenAt DateTime      @default(now())
   lastSeenAt  DateTime
+  /// Last detail-page check (CrawlerService.checkClosed); null = never checked.
+  checkedAt   DateTime?
+  /// The source said the posting is closed though it may still show up in search. upsertMany keeps it EXPIRED.
+  closedAt    DateTime?
   hidden      Boolean       @default(false)
   starred     Boolean       @default(false)
 

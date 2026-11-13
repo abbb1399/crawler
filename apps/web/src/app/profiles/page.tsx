@@ -99,13 +99,27 @@ export default async function ProfilesPage({
                 </CardContent>
 
                 <CardFooter className="flex flex-wrap gap-2">
-                  <ActionForm signedIn={signedIn} action={crawlNow} fields={{ id: p.id }} size="xs">
+                  <ActionForm
+                    signedIn={signedIn}
+                    action={crawlNow}
+                    fields={{ id: p.id }}
+                    size="xs"
+                    confirm={{ title: `"${p.name}" 수집을 지금 실행할까요?`, description: '이 프로필로 바로 수집을 시작합니다.', action: '실행' }}
+                  >
                     <Play data-icon="inline-start" /> 지금 수집
                   </ActionForm>
                   <ActionForm signedIn={signedIn} action={toggleProfileEnabled} fields={{ id: p.id, enabled: p.enabled }} variant="outline" size="xs">
                     {p.enabled ? '비활성화' : '활성화'}
                   </ActionForm>
-                  <ActionForm signedIn={signedIn} action={deleteProfile} fields={{ id: p.id }} variant="destructive" size="xs" className="ml-auto">
+                  <ActionForm
+                    signedIn={signedIn}
+                    action={deleteProfile}
+                    fields={{ id: p.id }}
+                    variant="destructive"
+                    size="xs"
+                    className="ml-auto"
+                    confirm={{ title: `"${p.name}" 프로필을 삭제할까요?`, description: '실행 이력도 함께 삭제되며 되돌릴 수 없습니다.', action: '삭제' }}
+                  >
                     <Trash2 data-icon="inline-start" /> 삭제
                   </ActionForm>
                 </CardFooter>

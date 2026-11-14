@@ -10,7 +10,8 @@ COPY packages/shared/package.json packages/shared/
 COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile --filter web...
 
-# Inlined at build time. Same origin as the dashboard: Caddy routes /admin/queues to the API.
+# Inlined at build time. Where /api/queues-gate sends the admin after the check. Same origin as the
+# dashboard: Caddy routes /admin/queues to the API once web accepts the pass cookie.
 ARG NEXT_PUBLIC_BULL_BOARD_URL=/admin/queues
 ENV NEXT_PUBLIC_BULL_BOARD_URL=$NEXT_PUBLIC_BULL_BOARD_URL
 # Clerk publishable key (public, not a secret). Empty = Clerk disabled in the built image.

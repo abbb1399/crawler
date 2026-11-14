@@ -3,12 +3,10 @@ import { ClerkProvider, Show, UserButton } from '@clerk/nextjs';
 import { shadcn } from '@clerk/ui/themes';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
-import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Suspense } from 'react';
-import { MainNav } from '@/components/main-nav';
-import { Button } from '@/components/ui/button';
+import { MainNav, NavExternalLink } from '@/components/main-nav';
 import { SignInToAct } from '@/components/sign-in-to-act';
 import { TrawlerMark } from '@/components/trawler-mark';
 import { Toaster } from '@/components/ui/sonner';
@@ -29,34 +27,32 @@ async function AdminOnly({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const bullBoard = (
-    <Button asChild variant="link" size="sm" className="text-muted-foreground">
-      <a
-        href={`${process.env.NEXT_PUBLIC_BULL_BOARD_URL ?? 'http://localhost:3000/admin/queues'}`}
-        target="_blank"
-        rel="noreferrer"
-      >
-        Bull Board <ExternalLink data-icon="inline-end" />
-      </a>
-    </Button>
-  );
+  // Bull Board, through the admin check that issues its pass (app/api/queues-gate). Only the admin
+  // sees it; without Clerk (local dev) it is always there.
+  const queues = <NavExternalLink href="/api/queues-gate">작업 큐</NavExternalLink>;
   const shell = (
     <>
         <header className="border-b bg-card">
-          {/* Wraps on phones: logo + nav on one line, the Bull Board link drops to the next. */}
+          {/* Wraps on phones: logo + nav on one line, the sign-in / account button drops to the next. */}
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2">
             <Link href="/" className="flex items-center gap-1.5 font-semibold tracking-tight">
               <TrawlerMark className="size-5 text-teal-700 dark:text-teal-400" />
               trawler
             </Link>
-            <MainNav />
-            <div className="ml-auto flex items-center gap-2">
-              {/* Bull Board is an operator tool: only the admin sees the link (Caddy basic auth still guards
-                  the page). Signed-out visitors get a sign-in button here, like the change buttons. */}
+            <MainNav>
               {clerkEnabled ? (
                 <Suspense>
+                  <AdminOnly>{queues}</AdminOnly>
+                </Suspense>
+              ) : (
+                queues
+              )}
+            </MainNav>
+            <div className="ml-auto flex items-center gap-2">
+              {/* Signed-out visitors get a sign-in button here, like the change buttons. */}
+              {clerkEnabled && (
+                <Suspense>
                   <Show when="signed-in">
-                    <AdminOnly>{bullBoard}</AdminOnly>
                     <UserButton />
                   </Show>
                   <Show when="signed-out">
@@ -65,8 +61,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </SignInToAct>
                   </Show>
                 </Suspense>
-              ) : (
-                bullBoard
               )}
             </div>
           </div>

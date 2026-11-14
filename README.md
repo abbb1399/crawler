@@ -90,8 +90,8 @@ LOG_LEVEL=info                 # 기본: production=info, 그 외=debug
 - `/` 공고 목록: 소스·검색어·오늘 신규만·숨김만·별표·만료 포함 필터(바꾸는 즉시 적용, 검색어는 debounce, URL 상태는 nuqs), 30건씩 페이지네이션, 숨김/별표 토글. 오늘 처음 잡힌 공고에는 NEW 배지와 헤더 집계. 숨긴 공고는 기본 목록과 통계에서 빠지고, 클릭한 링크는 브라우저 `:visited`로 흐려집니다.
 - `/profiles` 검색 프로필 CRUD, 활성 토글, "지금 수집"(모든 소스 enqueue).
 - `/runs` 최근 14일 일별 추이 차트(소스별 신규 공고·평균 소요)와 최근 50회 실행 이력.
-- API 주소는 `API_URL`(로컬 기본 `http://localhost:3000`), Bull Board 링크는 `NEXT_PUBLIC_BULL_BOARD_URL`.
-- 조회는 로그인 없이 공개. 숨김·별표·프로필 변경·지금 수집은 버튼을 누를 때 Clerk 로그인을 요구하고, `OWNER_EMAILS`의 계정만 통과. 키가 없으면 로컬은 열린 모드, 운영은 변경 거부. Bull Board는 Basic Auth.
+- API 주소는 `API_URL`(로컬 기본 `http://localhost:3000`), 작업 큐(Bull Board) 주소는 `NEXT_PUBLIC_BULL_BOARD_URL`.
+- 조회는 로그인 없이 공개. 숨김·별표·프로필 변경·지금 수집은 버튼을 누를 때 Clerk 로그인을 요구하고, `OWNER_EMAILS`의 계정만 통과. 키가 없으면 로컬은 열린 모드, 운영은 변경 거부. Bull Board는 admin에게만 보이는 "작업 큐" 메뉴로 들어가고, 운영에서는 Caddy가 admin 확인 후 발급한 서명 쿠키를 검사한다(deploy/README.md).
 
 ## 운영 동작
 

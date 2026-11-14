@@ -4,7 +4,7 @@ AWS Lightsail(서울, Ubuntu 24.04, 2GB) 한 대에 `docker-compose.prod.yml`로
 
 ```
 인터넷 ─► Caddy :443 (HTTPS 자동)
-            ├─ /admin/queues* ─► api:3000 (Bull Board, Basic Auth)
+            ├─ /admin/queues* ─► api:3000 (Bull Board, admin만: web에 확인 후 통과)
             └─ 그 외          ─► web:3001 ─► api:3000
 api ─► postgres, redis   (Caddy 외에는 포트를 열지 않음)
 ```
@@ -13,7 +13,7 @@ api ─► postgres, redis   (Caddy 외에는 포트를 열지 않음)
 
 | 항목 | 값 |
 |---|---|
-| URL | https://3-39-184-37.sslip.io (대시보드 공개, Bull Board `/admin/queues`는 Basic Auth) |
+| URL | https://3-39-184-37.sslip.io (대시보드 공개, 작업 큐(Bull Board) `/admin/queues`는 admin만) |
 | 클라우드 | AWS Lightsail, 서울 리전 `ap-northeast-2` (가용 영역 `ap-northeast-2a`) |
 | 인스턴스 | `trawler`, 번들 `small_3_0` (2 vCPU, RAM 2GB, SSD 60GB, 트래픽 3TB/월), Ubuntu 24.04 LTS |
 | 비용 | 월 $12 (고정 IP는 인스턴스에 붙어 있는 동안 무료) |
@@ -37,8 +37,6 @@ api ─► postgres, redis   (Caddy 외에는 포트를 열지 않음)
 ```
 POSTGRES_PASSWORD=<openssl rand -hex 24>
 SITE_ADDRESS=<도메인 또는 1-2-3-4.sslip.io>
-BASIC_AUTH_USER=trawler
-BASIC_AUTH_HASH='<docker run --rm caddy:2 caddy hash-password --plaintext 비밀번호>'   # 작은따옴표 필수($ 포함)
 # 이하 선택. api 컨테이너로 그대로 전달됨
 CRAWL_CRON=0 8-22/2 * * 1-5   # 월~금 08~22시 2시간마다(주 40회). 주말·새벽엔 공고가 거의 없어서 수집 안 함. 기본값은 30분마다
 # 대시보드 변경 권한 (Clerk). 없으면 운영에서는 모든 변경이 거부된다(조회는 됨)
@@ -53,6 +51,7 @@ OWNER_EMAILS=you@example.com            # 쉼표로 여러 명
 2. Clerk 대시보드 → Restrictions에서 **가입 제한**을 켜고 본인 계정만 가입한다. 코드 쪽 `OWNER_EMAILS` 검사는 이중 안전망.
 3. 공개 키는 이미지 빌드 때 인라인되므로 GitHub 저장소 Settings → Secrets and variables → **Variables**에 `CLERK_PUBLISHABLE_KEY`(pk_test…)를 넣는다. 시크릿과 소유자 이메일은 위 `.env`.
 4. 조회는 로그인 없이 되고, 숨김·별표·프로필 변경·지금 수집 버튼을 누르는 순간 로그인 모달이 뜬다.
+5. **작업 큐(Bull Board)** 메뉴는 admin에게만 보인다. 누르면 `/api/queues-gate`가 Clerk로 admin인지 한 번 확인하고 12시간짜리 서명 쿠키(`CLERK_SECRET_KEY`에서 키 파생)를 준 뒤 `/admin/queues`로 보낸다. Caddy는 `/admin/queues*` 요청마다 `forward_auth`로 web의 `/api/queues-gate/check`에 그 쿠키를 확인받는다. 쿠키가 없으면 페이지 요청은 입장 경로로, Bull Board의 API 호출은 401. Clerk 세션을 직접 확인하지 않는 이유: 세션 토큰은 60초마다 clerk-js가 갱신하는데 Bull Board 페이지엔 clerk-js가 없다.
 
 `.env`를 바꾼 뒤에는 `docker compose -f docker-compose.prod.yml up -d`로 반영.
 

@@ -1,11 +1,13 @@
 # Only public entry point. HTTPS is automatic for SITE_ADDRESS (a domain, or <ip-with-dashes>.sslip.io).
-# The dashboard is public; Bull Board can clean/retry/delete jobs, so it stays behind basic auth.
+# The dashboard is public. Bull Board (작업 큐) can clean/retry/delete jobs, so only the admin gets in:
+# web's /api/queues-gate checks the Clerk admin once and sets a signed pass cookie, and every request
+# here is let through only if web's check route accepts that cookie (apps/web/src/lib/queues-gate.ts).
 {$SITE_ADDRESS} {
 	encode gzip
 
 	handle /admin/queues* {
-		basic_auth {
-			{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+		forward_auth web:3001 {
+			uri /api/queues-gate/check
 		}
 		reverse_proxy api:3000
 	}

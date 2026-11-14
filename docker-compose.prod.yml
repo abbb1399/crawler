@@ -89,8 +89,6 @@ services:
       - "443:443/udp"
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
-      BASIC_AUTH_USER: ${BASIC_AUTH_USER:?set BASIC_AUTH_USER in .env}
-      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:?set BASIC_AUTH_HASH in .env}
     volumes:
       # Mount the directory, not the file: deploy.sh replaces the file, and a file bind mount keeps the old inode.
       - ./deploy:/etc/caddy:ro

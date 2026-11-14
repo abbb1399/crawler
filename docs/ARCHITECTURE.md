@@ -24,7 +24,7 @@ flowchart LR
     end
 
     subgraph server[Lightsail 한 대 · Docker Compose]
-        C[Caddy :443<br/>HTTPS · Basic Auth]
+        C[Caddy :443<br/>HTTPS · 작업 큐 admin 확인]
         WEB[web · Next.js<br/>서버 컴포넌트 + 서버 액션]
         API[api · NestJS<br/>HTTP + BullMQ 워커 + 크론]
         PG[(Postgres 16)]
@@ -56,7 +56,7 @@ flowchart LR
 
 | 컨테이너 | 이미지 | 비고 |
 |---|---|---|
-| caddy | `caddy:2` | sslip.io 도메인에 Let's Encrypt 자동 발급. `/admin/queues*`만 Basic Auth, `/docs*`·`/openapi.json`은 공개로 api에 전달, 나머지는 web. |
+| caddy | `caddy:2` | sslip.io 도메인에 Let's Encrypt 자동 발급. `/admin/queues*`는 `forward_auth`로 web에 admin 서명 쿠키를 확인받고, `/docs*`·`/openapi.json`은 공개로 api에 전달, 나머지는 web. |
 | web | GHCR `trawler-web` | `API_URL=http://api:3000`. Clerk 공개 키는 빌드 시 인라인, 시크릿·소유자 이메일은 런타임 `.env`. |
 | api | GHCR `trawler-api` | Playwright 공식 이미지 기반(크로미엄 포함). `ipc: host`(크로미엄 공유 메모리). 기동 시 `prisma migrate deploy`. healthcheck는 `/health`. |
 | postgres | `postgres:16-alpine` | 볼륨 `pgdata`. |
@@ -195,6 +195,7 @@ sequenceDiagram
 
 - **조회는 공개, 변경만 보호.** 로그인을 첫 화면에서 요구하지 않는다. 숨김·별표·프로필 변경·지금 수집 버튼을 누르는 순간에만 Clerk 모달이 뜬다. 버튼 자체는 로그인 여부에 따라 실제 폼 또는 로그인 트리거로 렌더링된다.
 - **게이트는 서버 액션 안에.** 미들웨어(`proxy.ts`)는 세션을 읽기만 하고 아무 경로도 막지 않는다. 미들웨어 단독 보호는 우회된 전례(CVE-2025-29927)가 있어서, 변경하는 모든 액션 첫 줄에서 `requireOwner()`를 부른다. Clerk 쪽 가입 제한과 코드 쪽 `OWNER_EMAILS` 검사가 이중 안전망이다.
+- **작업 큐(Bull Board)는 서명 쿠키로.** Bull Board는 api가 서빙하는 별도 페이지라 Clerk가 없다. admin만 보이는 "작업 큐" 메뉴가 `/api/queues-gate`에서 admin을 한 번 확인하고 12시간짜리 HMAC 쿠키(키는 `CLERK_SECRET_KEY`에서 파생)를 준다. Caddy는 `/admin/queues*` 요청마다 `forward_auth`로 web의 check 경로에 그 쿠키만 확인받는다. Clerk 세션 토큰(60초, clerk-js가 갱신)을 직접 보면 1분 뒤 Bull Board 폴링이 끊긴다.
 - **브라우저는 API를 모른다.** API는 Caddy 뒤 내부 네트워크에만 있고(문서·Bull Board 경로 제외), 데이터는 서버 컴포넌트가 `API_URL`로 읽어온다. CORS, 토큰 전달, 클라이언트 fetch 상태 관리가 전부 필요 없다.
 - **URL이 필터 상태.** 소스·검색어·신규·숨김·별표·만료 필터는 nuqs로 쿼리스트링에 산다. 선택은 즉시, 검색어는 debounce로 반영되고, 링크를 공유하면 같은 화면이 나온다.
 

@@ -14,11 +14,8 @@ describe('validateEnv', () => {
       CRAWL_ON_BOOT: false,
       STALE_DAYS: 7,
       REPOST_WINDOW_DAYS: 45,
-      NOTIFY_REPOSTS: false,
-      NOTIFY_MAX_PER_RUN: 50,
       PW_HEADLESS: true,
     });
-    expect(env.SLACK_WEBHOOK_URL).toBeUndefined();
   });
 
   it('defaults LOG_LEVEL by NODE_ENV and accepts an override', () => {
@@ -43,9 +40,5 @@ describe('validateEnv', () => {
     expect(message).toMatch(/^Invalid environment:/);
     expect(message).toContain('DATABASE_URL');
     expect(message).toContain('ROLE');
-  });
-
-  it('rejects a malformed Slack webhook URL rather than silently disabling Slack', () => {
-    expect(() => validateEnv({ ...minimal, SLACK_WEBHOOK_URL: 'hooks.slack.com/xxx' })).toThrow(/SLACK_WEBHOOK_URL/);
   });
 });

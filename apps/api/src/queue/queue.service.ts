@@ -4,13 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import type { EnqueueResult, JobSource } from '@trawler/shared';
 import { Queue } from 'bullmq';
 import type { Env } from '../config/env';
-import {
-  crawlJobId,
-  crawlQueueName,
-  NOTIFY_QUEUE,
-  type CrawlJobData,
-  type NotifyJobData,
-} from './queue.constants';
+import { crawlJobId, crawlQueueName, type CrawlJobData } from './queue.constants';
 
 /** Producer side: everything that puts jobs on a queue goes through here. */
 @Injectable()
@@ -22,7 +16,6 @@ export class QueueService implements OnModuleInit {
   constructor(
     @InjectQueue(crawlQueueName('WANTED')) wanted: Queue<CrawlJobData>,
     @InjectQueue(crawlQueueName('SARAMIN')) saramin: Queue<CrawlJobData>,
-    @InjectQueue(NOTIFY_QUEUE) private readonly notifyQueue: Queue<NotifyJobData>,
     config: ConfigService<Env, true>,
   ) {
     this.crawlQueues = new Map([
@@ -63,12 +56,6 @@ export class QueueService implements OnModuleInit {
     return { queue: queue.name, jobId: String(job.id), deduplicated: job.id !== jobId };
   }
 
-  /** Multiple notify jobs are harmless: concurrency is 1 and a run with nothing pending is a no-op. */
-  async enqueueNotify(data: NotifyJobData = {}): Promise<EnqueueResult> {
-    const job = await this.notifyQueue.add('dispatch', data);
-    return { queue: this.notifyQueue.name, jobId: String(job.id), deduplicated: false };
-  }
-
   async counts() {
     const out: Record<string, Record<string, number>> = {};
     for (const q of this.allQueues()) {
@@ -78,6 +65,6 @@ export class QueueService implements OnModuleInit {
   }
 
   private allQueues(): Queue[] {
-    return [...this.crawlQueues.values(), this.notifyQueue];
+    return [...this.crawlQueues.values()];
   }
 }

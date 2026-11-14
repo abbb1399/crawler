@@ -3,7 +3,7 @@ import type { PrismaService } from '../prisma/prisma.service';
 import type { QueueService } from '../queue/queue.service';
 import { HealthController } from './health.controller';
 
-const COUNTS = { 'crawl-wanted': { waiting: 0, active: 0 }, notify: { waiting: 1, active: 0 } };
+const COUNTS = { 'crawl-wanted': { waiting: 0, active: 0 }, 'crawl-saramin': { waiting: 1, active: 0 } };
 
 function make(opts: { db?: 'ok' | 'down' | 'hang'; redis?: 'ok' | 'down' | 'hang' } = {}) {
   const never = () => new Promise<never>(() => undefined);

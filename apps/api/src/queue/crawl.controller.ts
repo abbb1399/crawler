@@ -1,20 +1,17 @@
 import { BadRequestException, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
-  type CrawlSyncResult,
+  type CrawlSummary,
   CrawlTriggerQuery,
-  type DispatchResult,
   type EnqueueResult,
   type ExpireResult,
   JobSource,
   type QueueCounts,
   type Stats,
-  type TestAlertResult,
 } from '@trawler/shared';
 import { startOfTodayKst } from '../common/time';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { CrawlerService } from '../crawler/crawler.service';
-import { NotificationsService } from '../notifier/notifications.service';
 import { PostingsService } from '../postings/postings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from './queue.service';
@@ -29,7 +26,6 @@ export class CrawlController {
   constructor(
     private readonly queues: QueueService,
     private readonly crawler: CrawlerService,
-    private readonly notifications: NotificationsService,
     private readonly postings: PostingsService,
     private readonly prisma: PrismaService,
   ) {}
@@ -57,11 +53,8 @@ export class CrawlController {
   /** Run inline and wait for the result. Debugging aid; bypasses the queue. */
   @Post('crawl/:source/sync')
   @Throttle(EXPENSIVE)
-  async runSync(@Param('source') sourceParam: string, @Query(TriggerQuery) q: CrawlTriggerQuery): Promise<CrawlSyncResult> {
-    const source = parseSource(sourceParam);
-    const summary = await this.crawler.run(source, q.profileId);
-    const notify = summary.inserted > 0 ? await this.notifications.dispatchPending() : null;
-    return { ...summary, notify };
+  runSync(@Param('source') sourceParam: string, @Query(TriggerQuery) q: CrawlTriggerQuery): Promise<CrawlSummary> {
+    return this.crawler.run(parseSource(sourceParam), q.profileId);
   }
 
   /** Expiry pass on demand (the nightly cron does the same). */
@@ -69,21 +62,6 @@ export class CrawlController {
   @Throttle(EXPENSIVE)
   expire(): Promise<ExpireResult> {
     return this.postings.expireStale();
-  }
-
-  /** Re-dispatch anything still pending (normally the notify queue does this after a crawl). */
-  @Post('maintenance/notify')
-  @Throttle(EXPENSIVE)
-  notify(): Promise<DispatchResult> {
-    return this.notifications.dispatchPending();
-  }
-
-  /** Sends a test alert through every enabled channel. */
-  @Post('maintenance/test-alert')
-  @Throttle(EXPENSIVE)
-  async testAlert(): Promise<TestAlertResult> {
-    const sent = await this.notifications.alert(`test:${Date.now()}`, '테스트 경고입니다. 알림 채널이 동작합니다.');
-    return { sent, channels: this.notifications.enabledChannels() };
   }
 
   @Get('queues')

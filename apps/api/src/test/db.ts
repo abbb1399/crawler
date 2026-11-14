@@ -20,7 +20,7 @@ export function makePrisma(): PrismaService {
 
 export async function truncateAll(prisma: PrismaService): Promise<void> {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE "NotificationLog", "CrawlRun", "JobPosting", "SearchProfile" RESTART IDENTITY CASCADE',
+    'TRUNCATE "CrawlRun", "JobPosting", "SearchProfile" RESTART IDENTITY CASCADE',
   );
 }
 

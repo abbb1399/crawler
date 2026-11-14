@@ -39,7 +39,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
-    # App settings (SLACK_WEBHOOK_URL, CRAWL_CRON, ...) go in .env; the connection settings below win.
+    # App settings (CRAWL_CRON, STALE_DAYS, ...) go in .env; the connection settings below win.
     env_file: .env
     environment:
       DATABASE_URL: postgresql://trawler:${POSTGRES_PASSWORD}@postgres:5432/trawler?schema=public

@@ -160,7 +160,7 @@ function PostingRow({ p, signedIn }: { p: Posting; signedIn: boolean }) {
           <span>수집 {fmtDateTime(p.firstSeenAt)}</span>
           {p.status === 'EXPIRED' && <Badge variant="outline">만료</Badge>}
           {p.repostOfId !== null && (
-            <Badge variant="outline" title={`#${p.repostOfId} 재게시로 판단, 알림 생략`}>
+            <Badge variant="outline" title={`#${p.repostOfId} 재게시로 판단`}>
               재게시
             </Badge>
           )}

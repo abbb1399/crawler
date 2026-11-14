@@ -1,9 +1,8 @@
 import {
   CrawlRun,
-  CrawlSyncResult,
+  CrawlSummary,
   CrawlTriggerQuery,
   DeleteResult,
-  DispatchResult,
   EnqueueResult,
   ErrorBody,
   ExpireResult,
@@ -21,7 +20,6 @@ import {
   SearchProfileInput,
   SearchProfilePatch,
   Stats,
-  TestAlertResult,
 } from '@trawler/shared';
 import { z } from 'zod';
 import { createDocument, type ZodOpenApiOperationObject, type ZodOpenApiResponsesObject } from 'zod-openapi';
@@ -74,7 +72,7 @@ export function buildOpenApiDocument(version: string) {
       { name: 'postings', description: '수집된 공고 조회·숨김·별표' },
       { name: 'profiles', description: '검색 프로필(키워드·필터·지역)' },
       { name: 'crawl', description: '수집 실행 (큐 또는 인라인)' },
-      { name: 'maintenance', description: '만료 처리·알림 재발송·경고 테스트' },
+      { name: 'maintenance', description: '만료 처리' },
       { name: 'stats', description: '집계·큐·실행 이력' },
     ],
     paths: {
@@ -145,19 +143,13 @@ export function buildOpenApiDocument(version: string) {
       '/crawl/{source}/sync': {
         post: op('crawl', '큐를 거치지 않고 바로 수집하고 결과를 기다림 (디버깅용)', {
           requestParams: { path: SourceParam, query: CrawlTriggerQuery },
-          responses: { 201: json(CrawlSyncResult, '수집 요약 + 알림 결과'), 400: VALIDATION, 404: NOT_FOUND },
+          responses: { 201: json(CrawlSummary, '수집 요약'), 400: VALIDATION, 404: NOT_FOUND },
         }),
       },
       '/maintenance/expire': {
         post: op('maintenance', '만료 패스 (마감 지남 / STALE_DAYS 동안 미발견 → EXPIRED)', {
           responses: { 201: json(ExpireResult, '만료 처리 건수') },
         }),
-      },
-      '/maintenance/notify': {
-        post: op('maintenance', '미발송 알림 재발송', { responses: { 201: json(DispatchResult, '발송 결과') } }),
-      },
-      '/maintenance/test-alert': {
-        post: op('maintenance', '모든 활성 채널로 테스트 경고', { responses: { 201: json(TestAlertResult, '발송 여부') } }),
       },
       '/queues': {
         get: op('stats', '큐별 잡 카운트', { responses: { 200: json(QueueCounts, '큐 상태') } }),
@@ -180,11 +172,9 @@ export function buildOpenApiDocument(version: string) {
         RunsStatsQuery,
         RunsDaily,
         CrawlTriggerQuery,
-        CrawlSyncResult,
+        CrawlSummary,
         EnqueueResult,
         ExpireResult,
-        DispatchResult,
-        TestAlertResult,
         QueueCounts,
         Stats,
         HealthResponse,

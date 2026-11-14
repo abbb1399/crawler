@@ -8,16 +8,14 @@ import { JobSource } from '@trawler/shared';
 import type { Env } from '../config/env';
 import { runsWorkers } from '../config/role';
 import { CrawlerModule } from '../crawler/crawler.module';
-import { NotifierModule } from '../notifier/notifier.module';
 import { PostingsModule } from '../postings/postings.module';
 import { SchedulerService } from '../scheduler/scheduler.service';
 import { CrawlController } from './crawl.controller';
 import { SaraminCrawlProcessor, WantedCrawlProcessor } from './crawl.processor';
-import { NotifyProcessor } from './notify.processor';
-import { crawlQueueName, NOTIFY_QUEUE } from './queue.constants';
+import { crawlQueueName } from './queue.constants';
 import { QueueService } from './queue.service';
 
-const QUEUE_NAMES = [...JobSource.options.map(crawlQueueName), NOTIFY_QUEUE];
+const QUEUE_NAMES = JobSource.options.map(crawlQueueName);
 
 @Module({})
 export class QueueModule {
@@ -54,13 +52,12 @@ export class QueueModule {
         BullBoardModule.forRoot({ route: '/admin/queues', adapter: ExpressAdapter }),
         ...QUEUE_NAMES.map((name) => BullBoardModule.forFeature({ name, adapter: BullMQAdapter })),
         CrawlerModule,
-        NotifierModule,
         PostingsModule,
       ],
       controllers: [CrawlController],
       providers: [
         QueueService,
-        ...(workerSide ? [WantedCrawlProcessor, SaraminCrawlProcessor, NotifyProcessor, SchedulerService] : []),
+        ...(workerSide ? [WantedCrawlProcessor, SaraminCrawlProcessor, SchedulerService] : []),
       ],
       exports: [QueueService],
     };

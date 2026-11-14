@@ -82,27 +82,6 @@ export const CrawlTriggerQuery = z.object({
 });
 export type CrawlTriggerQuery = z.infer<typeof CrawlTriggerQuery>;
 
-export const NotifyChannel = z.enum(['SLACK']);
-export type NotifyChannel = z.infer<typeof NotifyChannel>;
-
-/** Result of a notification pass (POST /maintenance/notify, and inside CrawlSyncResult). */
-export const DispatchResult = z.object({
-  delivered: z.number(),
-  /** Postings whose batch failed on some channel; they stay pending for the next attempt. */
-  failed: z.number(),
-});
-export type DispatchResult = z.infer<typeof DispatchResult>;
-
-/** POST /crawl/:source/sync: the crawl summary plus the notification pass it triggered (null when nothing was new). */
-export const CrawlSyncResult = CrawlSummary.extend({ notify: DispatchResult.nullable() });
-export type CrawlSyncResult = z.infer<typeof CrawlSyncResult>;
-
-export const TestAlertResult = z.object({
-  sent: z.boolean(),
-  channels: z.array(NotifyChannel),
-});
-export type TestAlertResult = z.infer<typeof TestAlertResult>;
-
 // ---------------------------------------------------------------------------
 // Read API (consumed by apps/web)
 // ---------------------------------------------------------------------------

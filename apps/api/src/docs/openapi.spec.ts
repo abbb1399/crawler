@@ -17,8 +17,6 @@ const ROUTES: [method: string, path: string][] = [
   ['post', '/crawl'],
   ['post', '/crawl/{source}/sync'],
   ['post', '/maintenance/expire'],
-  ['post', '/maintenance/notify'],
-  ['post', '/maintenance/test-alert'],
   ['get', '/queues'],
   ['get', '/stats'],
 ];
@@ -44,7 +42,7 @@ describe('OpenAPI document', () => {
   });
 
   it('declares the shared error shape and the main contracts as components', () => {
-    for (const name of ['ErrorBody', 'Posting', 'PostingList', 'SearchProfile', 'CrawlRun', 'Stats', 'DispatchResult']) {
+    for (const name of ['ErrorBody', 'Posting', 'PostingList', 'SearchProfile', 'CrawlRun', 'Stats', 'CrawlSummary']) {
       expect(doc.components.schemas[name], name).toBeDefined();
     }
   });

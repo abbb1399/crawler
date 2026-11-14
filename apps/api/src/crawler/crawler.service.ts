@@ -28,7 +28,6 @@ export class CrawlerService {
 
   /**
    * Crawl every keyword of a profile on one source, filter by title, upsert, record a CrawlRun.
-   * Notification is the caller's job (the notify queue in normal operation).
    */
   async run(source: JobSource, profileId: number): Promise<CrawlSummary> {
     const adapter = this.adapters.get(source);

@@ -11,7 +11,7 @@ function fakeQueue(name: string, existingId?: string) {
 
 function service(wanted: Queue) {
   const other = fakeQueue('other').queue;
-  return new QueueService(wanted, other, other, stubConfig({ QUEUE_DRAIN_ON_BOOT: false }));
+  return new QueueService(wanted, other, stubConfig({ QUEUE_DRAIN_ON_BOOT: false }));
 }
 
 describe('QueueService.enqueueCrawl', () => {

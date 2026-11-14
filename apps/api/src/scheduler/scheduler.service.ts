@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { CronJob } from 'cron';
 import type { Env } from '../config/env';
 import { CrawlerService } from '../crawler/crawler.service';
-import { NotificationsService } from '../notifier/notifications.service';
 import { PostingsService } from '../postings/postings.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
@@ -28,7 +27,6 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly postings: PostingsService,
     private readonly crawler: CrawlerService,
-    private readonly notifications: NotificationsService,
     config: ConfigService<Env, true>,
   ) {
     this.crawlCron = config.get('CRAWL_CRON', { infer: true });
@@ -85,7 +83,7 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
       const c = await this.crawler.checkClosed();
       if (c.failed >= 3 && c.checked === 0) {
         // Every check failing means the detail API changed or blocked us; one or two can just be deleted postings.
-        await this.notifications.alert('close-check-failed', `마감 확인 ${c.failed}건이 모두 실패했습니다. 상세 API가 바뀌었거나 차단됐을 수 있습니다.`);
+        this.logger.warn({ failed: c.failed }, 'close check: every detail lookup failed; the detail API may have changed or blocked us');
       }
       this.logger.log(
         `maintenance(${trigger}): expired dueDate=${r.byDueDate} stale=${r.byStale} closed=${c.closed}/${c.checked}, abandoned runs=${abandoned.count}`,

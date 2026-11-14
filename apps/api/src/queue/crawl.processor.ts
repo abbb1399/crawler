@@ -1,11 +1,9 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { SOURCE_LABEL, type CrawlSummary } from '@trawler/shared';
+import type { CrawlSummary } from '@trawler/shared';
 import { Job, UnrecoverableError } from 'bullmq';
 import { CrawlerService } from '../crawler/crawler.service';
-import { NotificationsService } from '../notifier/notifications.service';
 import { crawlQueueName, type CrawlJobData } from './queue.constants';
-import { QueueService } from './queue.service';
 
 /**
  * Shared body for every per-source crawl worker. Subclasses only pin the queue name.
@@ -22,8 +20,6 @@ export abstract class BaseCrawlProcessor extends WorkerHost {
 
   constructor(
     protected readonly crawler: CrawlerService,
-    protected readonly queues: QueueService,
-    protected readonly notifications: NotificationsService,
   ) {
     super();
   }
@@ -42,19 +38,11 @@ export abstract class BaseCrawlProcessor extends WorkerHost {
       // A profile deleted while its job was queued will never succeed; skip the retries.
       if (err instanceof NotFoundException) throw new UnrecoverableError(err.message);
       if (attempt >= maxAttempts) {
-        // Final failure: this is the only signal that a site changed its layout or blocked us.
+        // Final failure usually means the site changed its layout or blocked us; it also shows up as FAILED in /runs.
         const message = err instanceof Error ? err.message : String(err);
-        await this.notifications.alert(
-          `crawl-failed:${source}`,
-          `${SOURCE_LABEL[source]} 수집이 ${maxAttempts}회 연속 실패했습니다 (profile #${profileId}).\n${message}`,
-        );
+        this.logger.error({ jobId: job.id, source, profileId, attempts: maxAttempts, err: message }, 'crawl failed on every attempt');
       }
       throw err;
-    }
-    await job.updateProgress(90);
-
-    if (summary.inserted > 0) {
-      await this.queues.enqueueNotify({ runId: summary.runId });
     }
     await job.updateProgress(100);
     this.logger.log(

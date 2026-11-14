@@ -56,7 +56,7 @@ export class PostingsService {
   /**
    * Insert new postings, refresh existing ones. Dedup key is (source, externalId).
    * New rows whose fingerprint matches a posting seen within the repost window get
-   * `repostOfId` so the notifier can skip them.
+   * `repostOfId` (the dashboard marks them as reposts).
    */
   async upsertMany(postings: RawPosting[]): Promise<UpsertResult> {
     const unique = dedupeByKey(postings);

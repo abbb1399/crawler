@@ -29,16 +29,6 @@ enum CrawlRunStatus {
   FAILED
 }
 
-enum NotifyChannel {
-  SLACK
-  TELEGRAM
-}
-
-enum NotifyKind {
-  NEW
-  REPOST
-}
-
 /// A named set of keywords to crawl across one or more sources.
 model SearchProfile {
   id        Int         @id @default(autoincrement())
@@ -72,7 +62,7 @@ model JobPosting {
   contentHash String
   /// md5(normalized company|title). Same job re-registered under a new externalId shares it.
   fingerprint String
-  /// Earlier posting with the same fingerprint seen within the repost window; such rows are not announced.
+  /// Earlier posting with the same fingerprint seen within the repost window (shown as "재게시").
   repostOfId  Int?
   status      PostingStatus @default(ACTIVE)
   raw         Json
@@ -84,8 +74,6 @@ model JobPosting {
   closedAt    DateTime?
   hidden      Boolean       @default(false)
   starred     Boolean       @default(false)
-
-  notifications NotificationLog[]
 
   @@unique([source, externalId])
   @@index([status, lastSeenAt])
@@ -113,16 +101,3 @@ model CrawlRun {
   @@index([source, startedAt])
 }
 
-/// Used from Phase 2. Unique key guarantees a posting is never notified twice on one channel.
-model NotificationLog {
-  id        Int           @id @default(autoincrement())
-  postingId Int
-  posting   JobPosting    @relation(fields: [postingId], references: [id], onDelete: Cascade)
-  channel   NotifyChannel
-  kind      NotifyKind    @default(NEW)
-  sentAt    DateTime      @default(now())
-  ok        Boolean
-  error     String?
-
-  @@unique([postingId, channel, kind])
-}

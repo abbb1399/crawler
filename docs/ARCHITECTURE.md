@@ -20,7 +20,6 @@ flowchart LR
     subgraph ext[외부]
         W[원티드 JSON API]
         S[사람인 검색 페이지]
-        SL[Slack Webhook]
         CL[Clerk]
     end
 
@@ -41,7 +40,6 @@ flowchart LR
     API <-->|큐| RD
     API -->|fetch| W
     API -->|Playwright 크로미엄| S
-    API -.->|새 공고 알림 · 미연동| SL
 ```
 
 구성은 세 층이다.
@@ -95,7 +93,6 @@ sequenceDiagram
     participant Site as 원티드 / 사람인
     participant PS as PostingsService
     participant DB as Postgres
-    participant N as NotifyProcessor
 
     Cron->>DB: enabled 프로필 조회
     loop 프로필 × 소스
@@ -114,22 +111,15 @@ sequenceDiagram
     PS->>DB: 트랜잭션: 기존 조회 → 신규 insert(재게시 판정) → 변경분 update → lastSeenAt 갱신
     PS-->>P: { inserted, updated, repostIds }
     P->>DB: CrawlRun OK (fetched/found/inserted/updated)
-    alt inserted > 0
-        P->>Q: add(notify, { runId })
-        Q->>N: job
-        N->>DB: 24h 안에 처음 본 · 재게시 아님 · 미발송 공고 조회
-        N-->>N: 10건씩 Slack 전송, NotificationLog 기록
-    end
 ```
 
 설계 포인트:
 
-- **소스별 큐.** `crawl-wanted`, `crawl-saramin`, `notify` 세 큐. 사람인은 브라우저를 띄우므로 concurrency 1로 한 번에 한 브라우저만 돈다. `lockDuration` 5분으로 느린 크롤이 stalled 판정을 받지 않게 했다.
+- **소스별 큐.** `crawl-wanted`, `crawl-saramin` 두 큐. 사람인은 브라우저를 띄우므로 concurrency 1로 한 번에 한 브라우저만 돈다. `lockDuration` 5분으로 느린 크롤이 stalled 판정을 받지 않게 했다.
 - **잡 ID로 중복 방지.** `{source}-{profileId}-{분}`이라 크론이 두 번 튀거나 "지금 수집"을 연타해도 같은 분 안에서는 잡 하나로 합쳐진다.
-- **재시도와 최종 실패 알림.** 기본 3회, 지수 백오프 10초. 3회째도 실패하면 그것이 "사이트가 바뀌었거나 차단됐다"는 유일한 신호이므로 Slack 경고를 보낸다(`ALERT_MIN_INTERVAL_MIN`, 6시간에 한 번). 프로필이 삭제돼 `NotFoundException`이 나면 `UnrecoverableError`로 재시도 없이 끝낸다.
+- **재시도와 최종 실패.** 기본 3회, 지수 백오프 10초. 3회째도 실패하면 "사이트가 바뀌었거나 차단됐다"는 신호라 error 로그를 남기고, `/runs`에 FAILED로 보인다. 프로필이 삭제돼 `NotFoundException`이 나면 `UnrecoverableError`로 재시도 없이 끝낸다.
 - **원티드는 검색에 더해 직군 목록도 읽는다.** 원티드 검색은 모든 공고를 돌려주지 않는다(2026-10-28, 프론트엔드 직군 목록에만 있고 검색·앱 검색 어디에도 안 나오는 Product Engineer 공고 확인). 그래서 키워드 검색 뒤에 개발 › 프론트엔드 개발자 목록을 최신순으로 한 번 더 읽고, 같은 제목·지역 필터를 거친다(`SourceAdapter.browse`).
 - **어댑터는 무상태.** `SourceAdapter { source, fetch(keyword, opts) }` 하나로 두 사이트를 추상화한다. 원티드는 SPA가 쓰는 JSON API를 그대로 호출하고, 사람인은 서버 렌더링 HTML을 Playwright로 열어 `.item_recruit`를 파싱한다(추출 함수는 페이지 컨텍스트에서 실행되는 순수 함수라 jsdom으로 단위 테스트한다). 페이지 사이에 1초 / 2~4초 랜덤 대기.
-- **알림은 큐가 분리되어 있고 멱등.** `NotificationLog(postingId, channel, kind)`가 unique라 같은 공고가 두 번 가지 않고, 실패한 배치는 다음 잡에서 다시 시도한다.
 
 ## 4. 공고의 정체성과 생명주기
 
@@ -157,7 +147,7 @@ stateDiagram-v2
     end note
 ```
 
-삭제는 하지 않는다. 만료된 공고도 목록에서 "만료 포함"으로 볼 수 있고, 재수집되면 ACTIVE로 돌아온다. 재게시 공고는 저장은 되지만 알림 대상에서 빠지고 목록에 "재게시" 표시가 붙는다.
+삭제는 하지 않는다. 만료된 공고도 목록에서 "만료 포함"으로 볼 수 있고, 재수집되면 ACTIVE로 돌아온다. 재게시 공고는 저장되고 목록에 "재게시" 표시가 붙는다.
 
 ## 5. API 횡단 관심사
 
@@ -233,7 +223,7 @@ flowchart LR
 |---|---|---|---|
 | 단위 (api) | `*.spec.ts` | 정체성 규칙, 제목 필터, 사람인 HTML 추출(jsdom), 큐 상수, 로거 설정, 예외 필터, 헬스(스텁), 실행 통계 집계, OpenAPI 경로 대조 | `pnpm test` |
 | 단위 (shared, web) | `*.spec.ts` | zod 스키마, 날짜 포맷, 소유자 판정 | `pnpm test` |
-| 통합 (api) | `*.int.spec.ts` | `upsertMany` 트랜잭션·재게시·숨김 전파, 만료, 알림 멱등성, fingerprint SQL 백필 = JS 함수 | `pnpm test:int` (`trawler_test` DB를 만들고 마이그레이션) |
+| 통합 (api) | `*.int.spec.ts` | `upsertMany` 트랜잭션·재게시·숨김 전파, 만료, fingerprint SQL 백필 = JS 함수 | `pnpm test:int` (`trawler_test` DB를 만들고 마이그레이션) |
 
 원칙은 세 가지다. 판정 로직(정체성, 필터, 집계, 로거 옵션)은 Prisma·Nest에서 떼어낸 순수 함수로 두고 단위 테스트한다. DB가 끼는 규칙은 실제 Postgres로 돌린다(모킹하면 트랜잭션·unique 제약을 못 본다). 외부 사이트는 절대 치지 않고 저장해 둔 HTML 픽스처로만 검증한다.
 
@@ -251,17 +241,17 @@ flowchart LR
 - **결정.** 크론은 enqueue만 하고 소스별 워커가 처리한다. 재시도·백오프·중복 합치기·관측(Bull Board)을 큐에 맡긴다.
 - **결과.** HTTP와 수집이 분리돼 `ROLE`로 프로세스를 나눌 길이 열렸고, 사람인 브라우저를 concurrency 1로 직렬화할 수 있다. Redis가 추가 인프라로 들어왔고 `/health`도 Redis를 봐야 한다.
 
-### ADR-3. 재게시 판정은 정규화 fingerprint, 알림만 억제
+### ADR-3. 재게시 판정은 정규화 fingerprint
 
-- **맥락.** 같은 자리가 며칠마다 새 ID로 다시 올라와 알림이 반복됐다. 사이트 ID로는 잡을 수 없다.
-- **결정.** 회사·제목을 정규화한 fingerprint가 45일 안에 있으면 재게시로 표시한다. 저장은 하되 알림에서 빼고, 원본의 숨김 상태를 물려받는다. 정규화 규칙을 느슨하게 바꿀 때는 SQL 백필을 함께 넣고 JS와 SQL을 같은 샘플로 대조하는 테스트를 둔다.
-- **결과.** 반복 알림이 사라졌고 "숨김"이 재게시에도 이어진다. 제목이 크게 바뀌면 놓치고(미탐), 같은 회사의 다른 포지션 제목이 상투어만 다르면 잘못 묶일 수 있다(오탐). 둘 다 치명적이지 않아 느슨한 쪽을 택했다.
+- **맥락.** 같은 자리가 며칠마다 새 ID로 다시 올라와 목록에 새 공고처럼 반복됐다. 사이트 ID로는 잡을 수 없다.
+- **결정.** 회사·제목을 정규화한 fingerprint가 45일 안에 있으면 재게시로 표시한다. 저장은 하되 "재게시"로 표시하고, 원본의 숨김 상태를 물려받는다. 정규화 규칙을 느슨하게 바꿀 때는 SQL 백필을 함께 넣고 JS와 SQL을 같은 샘플로 대조하는 테스트를 둔다.
+- **결과.** 재게시가 새 공고와 구분되고 "숨김"이 재게시에도 이어진다. 제목이 크게 바뀌면 놓치고(미탐), 같은 회사의 다른 포지션 제목이 상투어만 다르면 잘못 묶일 수 있다(오탐). 둘 다 치명적이지 않아 느슨한 쪽을 택했다.
 
 ### ADR-4. 원티드는 JSON API, 사람인은 Playwright
 
 - **맥락.** 두 사이트의 렌더링 방식이 다르다. 원티드는 SPA가 공개 JSON 엔드포인트를 호출하고, 사람인은 서버 렌더링 HTML이다.
 - **결정.** 소스마다 가장 가벼운 수단을 쓴다. 원티드는 `fetch`, 사람인만 크로미엄. 추출 로직은 페이지 컨텍스트에서 도는 순수 함수로 분리해 jsdom으로 테스트한다. 브라우저는 크롤마다 열고 닫되 프로필 디렉터리는 유지해 쿠키를 남긴다.
-- **결과.** 원티드는 빠르고 가볍다. 사람인 때문에 api 이미지가 Playwright 베이스(크로미엄 포함)여야 하고 서버에 스왑이 필요하다. 레이아웃 변경은 스크린샷(`storage/debug/`)과 3회 실패 알림으로 감지한다.
+- **결과.** 원티드는 빠르고 가볍다. 사람인 때문에 api 이미지가 Playwright 베이스(크로미엄 포함)여야 하고 서버에 스왑이 필요하다. 레이아웃 변경은 스크린샷(`storage/debug/`)과 3회 실패 후 FAILED 실행 기록으로 감지한다.
 
 ### ADR-5. 로그인은 변경 버튼을 누를 때만, 게이트는 서버 액션 안에
 
@@ -277,6 +267,5 @@ flowchart LR
 
 - **단일 인스턴스.** 서버 한 대가 죽으면 전부 멈춘다. 개인용이라 감수하고, 컨테이너 `restart: unless-stopped`와 재부팅 시 Docker 자동 기동으로 복구한다.
 - **`ROLE` 분리는 코드만 있다.** 운영은 `all` 한 컨테이너. api/worker 두 컨테이너로 나눠 실증하는 것이 다음 항목이다(2GB 메모리에서 크로미엄 둘이 가능한지 먼저 확인).
-- **Slack 알림은 미연동.** 코드·테스트는 있지만 운영 서버에 웹훅을 넣지 않았다.
 - **목록 페이지만 수집.** 상세 페이지(기술 스택, 연봉)는 긁지 않는다. 요청 수가 몇 배로 늘어 차단 위험이 커지기 때문에 보류.
 - **사람인 픽스처가 손으로 만든 HTML.** 실제 응답을 익명화해 교체하면 레이아웃 변경 회귀를 더 잘 잡는다.

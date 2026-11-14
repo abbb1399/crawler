@@ -38,22 +38,11 @@ export const EnvSchema = z.object({
   STALE_DAYS: z.coerce.number().int().min(1).default(7),
   /** A new posting whose fingerprint was seen within this window counts as a repost. */
   REPOST_WINDOW_DAYS: z.coerce.number().int().min(1).default(45),
-  /** Announce reposts too (default: suppress). */
-  NOTIFY_REPOSTS: z.stringbool().default(false),
-  /** Same alert key is not re-sent within this many minutes. */
-  ALERT_MIN_INTERVAL_MIN: z.coerce.number().int().min(1).default(360),
 
   /** Cron expression for enqueueing crawls of all enabled profiles. */
   CRAWL_CRON: z.string().min(9).default('*/30 * * * *'),
   /** Also enqueue one full crawl ~2s after startup. Handy in dev. */
   CRAWL_ON_BOOT: z.stringbool().default(false),
-
-  /** Slack Incoming Webhook URL. Unset = Slack channel disabled. */
-  SLACK_WEBHOOK_URL: z.string().url().optional(),
-  /** Cap on postings announced per channel per run (10 per Slack message). */
-  NOTIFY_MAX_PER_RUN: z.coerce.number().int().min(1).max(500).default(50),
-  /** Only postings first seen within this window are eligible for a NEW notification. */
-  NOTIFY_LOOKBACK_HOURS: z.coerce.number().int().min(1).default(24),
 });
 
 type RawEnv = z.infer<typeof EnvSchema>;
